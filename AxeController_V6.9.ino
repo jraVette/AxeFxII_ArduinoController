@@ -208,8 +208,8 @@ unsigned long ct;      // call time of FX request in millis
 	//               byte0  byte1 byte2 model fcn   checksum
 byte RQSTNAME[6]  = { 0x00, 0x01, 0x74, 0x06, 0x0F, 0x0C }; 
 byte RQSTNUM[6]   = { 0x00, 0x01, 0x74, 0x06, 0x14, 0x17 };
-byte RQSTCC[6]    = { 0x00, 0x01, 0x74, 0x03, 0x0E, 0x08 };
-byte RQSTSCENE[6] = { 0x00, 0x01, 0x74, 0x03, 0x29, 0x2F };
+byte RQSTCC[6]    = { 0x00, 0x01, 0x74, 0x06, 0x0E, 0x0D };
+byte RQSTSCENE[6] = { 0x00, 0x01, 0x74, 0x06, 0x29, 0x2A };
 
 
 void setup() {
@@ -231,8 +231,8 @@ Serial.println("Beginning");
     MIDI.begin(0);
     MIDI.turnThruOff();
     MIDI.setHandleSystemExclusive(HandleSysEx);
-//    MIDI.sendSysEx(6,RQSTNUM);
-//    delay(50);
+    MIDI.sendSysEx(6,RQSTNUM);
+    delay(50);
 //    MIDI.sendSysEx(6,RQSTNAME);
 //    delay(50);
 
