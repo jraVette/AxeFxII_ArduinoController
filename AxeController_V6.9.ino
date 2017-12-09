@@ -171,7 +171,7 @@ LiquidCrystal lcd(8, 13, 9, 4, 5, 6, 7);
 
 // constants
 static const unsigned ttt = 50;      // tempo led illumination time (ms)
-static const unsigned ledPin = 55;   // tempoLED pin
+static const unsigned ledPin = 12;   // tempoLED pin
 
 // Variables: 
 int switches[16] = { SWITCH1, SWITCH2, SWITCH3, SWITCH4, SWITCH5, SWITCH6, SWITCH7, SWITCH8,
@@ -197,19 +197,22 @@ bool updLCD = false;
 unsigned long ct;      // call time of FX request in millis
 
 // sysex requests
-byte RQSTNAME[6] = { 0x00, 0x01, 0x74, 0x03, 0x0F, 0x09 };
-byte RQSTNUM[6] = { 0x00, 0x01, 0x74, 0x03, 0x14, 0x12 };
-byte RQSTCC[6] = { 0x00, 0x01, 0x74, 0x03, 0x0E, 0x08 };
+	//Doc on header 
+		// 0x00 Manf. ID byte0
+		// 0x01 Manf. ID byte1
+		// 0x74 Manf. ID byte2
+		// 0xdd Model # : 0x03 Axe FX II, 0x06 Axe FX II XL
+	//Need to update checksums - this is XOR of the first 0xF0 (isn't in this call) through the header and stops w/ the fcn call
+	//    then and this number with the final byte (handled by arduino) 0x7F. 
+	//    For the Axe FX XL the xor of the checksum through the header is 0x83
+	//               byte0  byte1 byte2 model fcn   checksum
+byte RQSTNAME[6]  = { 0x00, 0x01, 0x74, 0x06, 0x0F, 0x0C }; 
+byte RQSTNUM[6]   = { 0x00, 0x01, 0x74, 0x06, 0x14, 0x17 };
+byte RQSTCC[6]    = { 0x00, 0x01, 0x74, 0x03, 0x0E, 0x08 };
 byte RQSTSCENE[6] = { 0x00, 0x01, 0x74, 0x03, 0x29, 0x2F };
 
 
 void setup() {
-
-//  LCD Initial Message
-  lcd.clear(); 
-  lcd.begin(16, 2);
-  lcd.setCursor(0,0); 
-  lcd.print("AxeFX Controller");
 
 
   //  LCD2 Initial Message
@@ -221,15 +224,23 @@ void setup() {
   
 //  Set MIDI baud rate:
 Serial.begin(115200);
+
+Serial.println("Beginning");
+
     
     MIDI.begin(0);
     MIDI.turnThruOff();
     MIDI.setHandleSystemExclusive(HandleSysEx);
-    MIDI.sendSysEx(6,RQSTNUM);
-    delay(50);
-    MIDI.sendSysEx(6,RQSTNAME);
-    delay(50);
-      
+//    MIDI.sendSysEx(6,RQSTNUM);
+//    delay(50);
+//    MIDI.sendSysEx(6,RQSTNAME);
+//    delay(50);
+
+//  LCD Initial Message
+  lcd.clear(); 
+  lcd.begin(16, 2);
+  lcd.setCursor(0,0); 
+  lcd.print("AxeFX Controller");      
 
 // Setup Switches and activation LEDs
   for( currentSwitch = 0; currentSwitch < 16; currentSwitch++ ) {
@@ -238,6 +249,8 @@ Serial.begin(115200);
     pinMode( leds[currentSwitch], OUTPUT );             // Set pin for LED
   flashPin( leds[currentSwitch], 100 ); // Flash LED
   }
+  Serial.println("Finished setup");
+
 }
 
 void loop() {
@@ -496,8 +509,12 @@ void parseName(const byte * sysex, int l) {
 
 // callback -  handle sysex
 void HandleSysEx(byte *SysExArray, unsigned int size) {
+
+    
+
     int sizear = 0;
     if(SysExArray[0]==0xF0) {
+      Serial.print("With uint8_t scalar: "); PrintHex8(SysExArray,size); Serial.print("\n"); 
         //Serial.print("MIDI IN:");Serial.println(SysExArray[5],HEX);
         switch (SysExArray[5]) {
             case 0x0F: { // preset name 
@@ -508,7 +525,7 @@ void HandleSysEx(byte *SysExArray, unsigned int size) {
                 updLCD = true;
                 break;
             }
-            case 0x29: { // scene
+            case 0x21: { // scene
               Serial.println("case 0x29 scene - ");
                 scene = SysExArray[6] + 1;
                 updLCD = true;
@@ -516,14 +533,14 @@ void HandleSysEx(byte *SysExArray, unsigned int size) {
                 break;
                 
             }
-            case 0x21: { // MIDI event ACK??
-              Serial.println("Case 0x21 MIDI event ACK?? - ");
-                ct = millis();
-                MIDI.sendSysEx(6,RQSTNUM);
-                MIDI.sendSysEx(6,RQSTNAME);
-                updLCD = true;
-                break;
-            }
+//            case 0x21: { // MIDI event ACK??
+//              Serial.println("Case 0x21 MIDI event ACK?? - ");
+//                ct = millis();
+//                MIDI.sendSysEx(6,RQSTNUM);
+//                MIDI.sendSysEx(6,RQSTNAME);
+//                updLCD = true;
+//                break;
+//            }
             
             case 0x14: {  // preset num
               Serial.println("case 0x14 preset num - ");
@@ -553,5 +570,25 @@ void HandleSysEx(byte *SysExArray, unsigned int size) {
 //            }
         }
     }
+}
+
+
+void PrintHex8(uint8_t *data, uint8_t length) // prints 8-bit data in hex with leading zeroes
+{
+     char tmp[16];
+       for (int i=0; i<length; i++) { 
+         sprintf(tmp, "0x%.2X",data[i]); 
+         Serial.print(tmp); Serial.print(" ");
+       }
+}
+
+void PrintHex16(uint16_t *data, uint8_t length) // prints 16-bit data in hex with leading zeroes
+{
+       char tmp[16];
+       for (int i=0; i<length; i++)
+       { 
+         sprintf(tmp, "0x%.4X",data[i]); 
+         Serial.print(tmp); Serial.print(" ");
+       }
 }
 
