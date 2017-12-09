@@ -182,6 +182,7 @@ int leds[16] = { LED1, LED2, LED3, LED4, LED5, LED6, LED7, LED8, LED9, LED10, LE
 int currentSwitch = 0;
 int pedalActiveFlash = 50; // Delay for flash when pedal is pressed
 int PresetNumb = 0; //Initial preset number for preset selection
+int currentPresetNumber = 0; //Variable for storing current preset
 
 unsigned long tt;      // time tempo sysex pulse detected
 char pname[32];
@@ -210,6 +211,9 @@ byte RQSTNAME[6]  = { 0x00, 0x01, 0x74, 0x06, 0x0F, 0x0C };
 byte RQSTNUM[6]   = { 0x00, 0x01, 0x74, 0x06, 0x14, 0x17 };
 byte RQSTCC[6]    = { 0x00, 0x01, 0x74, 0x06, 0x0E, 0x0D };
 byte RQSTSCENE[6] = { 0x00, 0x01, 0x74, 0x06, 0x29, 0x2A };
+
+byte GET_FRIMWARE_VERSION[6] = { 0x00, 0x01, 0x74, 0x06, 0x08, 0x0B };
+
 
 
 void setup() {
@@ -537,9 +541,21 @@ void HandleSysEx(byte *SysExArray, unsigned int size) {
               Serial.println("case 0x14 preset num - ");
                 const byte *sys = MIDI.getSysExArray();
                 sizear = MIDI.getData1();
+
+
                 preset = parseNum(sys,sizear);
+                if (preset != currentPresetNumber){
+                    currentPresetNumber = preset;
+                    //Reqeuest change to scene 1
+                    MIDI.sendControlChange(SceneSelect_CC, 0, MIDICHAN); 
+
+                    //Get updated name
                     MIDI.sendSysEx(6,RQSTNAME);
                     delay(50);
+                }
+
+                
+
                 updLCD = true;
                 break;
               
