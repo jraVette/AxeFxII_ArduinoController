@@ -213,34 +213,27 @@ byte RQSTSCENE[6] = { 0x00, 0x01, 0x74, 0x06, 0x29, 0x2A };
 
 
 void setup() {
-
-
-  //  LCD2 Initial Message
-//lcd2.clear(); 
-//lcd2.begin(16, 2);
-//lcd2.setCursor(0,0); 
-//lcd2.print("Hello Display 2");
-
+  //Set MIDI baud rate:
+  Serial.begin(115200);
   
-//  Set MIDI baud rate:
-Serial.begin(115200);
-
-Serial.println("Beginning");
-
-    
-    MIDI.begin(0);
-    MIDI.turnThruOff();
-    MIDI.setHandleSystemExclusive(HandleSysEx);
-    MIDI.sendSysEx(6,RQSTNUM);
-    delay(50);
-//    MIDI.sendSysEx(6,RQSTNAME);
-//    delay(50);
-
-//  LCD Initial Message
+  Serial.println("Initializing AxeFx Controller");
+  //LCD Initial Message
   lcd.clear(); 
   lcd.begin(16, 2);
   lcd.setCursor(0,0); 
-  lcd.print("AxeFX Controller");      
+  lcd.print("AxeFX Controller"); 
+
+  //Setup MIDI
+  MIDI.begin(0);
+  MIDI.turnThruOff();
+  MIDI.setHandleSystemExclusive(HandleSysEx);
+
+  //Request Number (which will request name)  
+  MIDI.sendSysEx(6,RQSTNUM);
+  delay(50);
+
+  //Request a scene change so we know what scene it's on. Can't query it through sysex
+  MIDI.sendControlChange(SceneSelect_CC, 0, MIDICHAN); 
 
 // Setup Switches and activation LEDs
   for( currentSwitch = 0; currentSwitch < 16; currentSwitch++ ) {
@@ -510,11 +503,9 @@ void parseName(const byte * sysex, int l) {
 // callback -  handle sysex
 void HandleSysEx(byte *SysExArray, unsigned int size) {
 
-    
-
     int sizear = 0;
     if(SysExArray[0]==0xF0) {
-      Serial.print("With uint8_t scalar: "); PrintHex8(SysExArray,size); Serial.print("\n"); 
+//      Serial.print("With uint8_t scalar: "); PrintHex8(SysExArray,size); Serial.print("\n"); 
         //Serial.print("MIDI IN:");Serial.println(SysExArray[5],HEX);
         switch (SysExArray[5]) {
             case 0x0F: { // preset name 
@@ -525,7 +516,7 @@ void HandleSysEx(byte *SysExArray, unsigned int size) {
                 updLCD = true;
                 break;
             }
-            case 0x21: { // scene
+            case 0x29: { // scene
               Serial.println("case 0x29 scene - ");
                 scene = SysExArray[6] + 1;
                 updLCD = true;
@@ -533,14 +524,14 @@ void HandleSysEx(byte *SysExArray, unsigned int size) {
                 break;
                 
             }
-//            case 0x21: { // MIDI event ACK??
-//              Serial.println("Case 0x21 MIDI event ACK?? - ");
-//                ct = millis();
-//                MIDI.sendSysEx(6,RQSTNUM);
-//                MIDI.sendSysEx(6,RQSTNAME);
-//                updLCD = true;
-//                break;
-//            }
+            case 0x21: { // MIDI event ACK??
+              Serial.println("Case 0x21 MIDI event ACK?? - ");
+                ct = millis();
+                MIDI.sendSysEx(6,RQSTNUM);
+                MIDI.sendSysEx(6,RQSTNAME);
+                updLCD = true;
+                break;
+            }
             
             case 0x14: {  // preset num
               Serial.println("case 0x14 preset num - ");
