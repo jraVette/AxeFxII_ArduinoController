@@ -6,10 +6,10 @@
 //MIDI_CREATE_INSTANCE(Type, SerialPort, Name)
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI); 
 
-#define SWITCH1 22 
-#define SWITCH2 24
-#define SWITCH3 26
-#define SWITCH4 28
+#define SWITCH1 24 
+#define SWITCH2 28
+#define SWITCH3 11
+#define SWITCH4 33
 #define SWITCH5 30
 #define SWITCH6 32
 #define SWITCH7 34 
@@ -23,8 +23,8 @@ MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
 #define SWITCH15 48 
 #define SWITCH16 52
 
-#define LED1 23
-#define LED2 25
+#define LED1 22
+#define LED2 26
 #define LED3 27
 #define LED4 29
 #define LED5 31
@@ -166,7 +166,10 @@ MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
  * lcd(RS, Enable, D4, D5, D6, D7, BL)
  * KEY pin to analogl pin 0
  */
-LiquidCrystal lcd(8, 13, 9, 4, 5, 6, 7);
+//LiquidCrystal lcd(8, 13, 9, 4, 5, 6, 7);
+const int rs = 8, rw= 53, e = 9, d4 = 4, d5 = 5, d6 = 6, d7 = 7;
+LiquidCrystal   lcd(rs, rw, e,  d4, d5, d6, d7);
+//LiquidCrystal lcd(8,  13, 9,  4,  5,  6, 7);
 //LiquidCrystal lcd2(8, 10, 9, 4, 5, 6); //Strange characters on Lcd1 when defining lcd2. Pending debug
 
 // constants
@@ -196,6 +199,7 @@ int cc = 0;
 int byp = 0;
 bool updLCD = false;
 unsigned long ct;      // call time of FX request in millis
+int screenDelayTime = 1500;
 
 // sysex requests
 	//Doc on header 
@@ -301,169 +305,171 @@ void loop() {
               lcd.clear();   lcd.begin(16, 2);  lcd.setCursor(0,0); lcd.print(PresetNumb); lcd.print("-");lcd.print(PresetNumb+4);
               lcd.setCursor(7,0);   lcd.print("Preset "); lcd.print(PresetNumb);
               Serial.println("Switch-1 ");
+              delay(screenDelayTime);
+              Serial.print("New preset number: "); Serial.println(PresetNumb);
 
         break;
 
 // Switch 2.                            Select preset on switch 2  
-        case 1:
-              MIDI.sendProgramChange(PresetNumb+1,MIDICHAN);
-              digitalWrite( LED1, LOW);
-              digitalWrite( LED2, HIGH);
-              digitalWrite( LED3, LOW);
-              digitalWrite( LED4, LOW);
-              digitalWrite( LED5, LOW);
-              lcd.clear();   lcd.begin(16, 2);  lcd.setCursor(0,0); lcd.print(PresetNumb); lcd.print("-");lcd.print(PresetNumb+4);
-              lcd.setCursor(7,0);   lcd.print("Preset "); lcd.print(PresetNumb+1);
-              Serial.println("Switch-2 ");
-        break;
+//        case 1:
+//              MIDI.sendProgramChange(PresetNumb+1,MIDICHAN);
+//              digitalWrite( LED1, LOW);
+//              digitalWrite( LED2, HIGH);
+//              digitalWrite( LED3, LOW);
+//              digitalWrite( LED4, LOW);
+//              digitalWrite( LED5, LOW);
+//              lcd.clear();   lcd.begin(16, 2);  lcd.setCursor(0,0); lcd.print(PresetNumb); lcd.print("-");lcd.print(PresetNumb+4);
+//              lcd.setCursor(7,0);   lcd.print("Preset "); lcd.print(PresetNumb+1);
+//              Serial.println("Switch-2 ");
+//        break;
 
         
 // Switch 3.                          Select preset on switch 3 
-        case 2:
-              MIDI.sendProgramChange(PresetNumb+2,MIDICHAN); 
-              digitalWrite( LED1, LOW);
-              digitalWrite( LED2, LOW);
-              digitalWrite( LED3, HIGH);
-              digitalWrite( LED4, LOW);
-              digitalWrite( LED5, LOW);
-              lcd.clear();   lcd.begin(16, 2);  lcd.setCursor(0,0); lcd.print(PresetNumb); lcd.print("-");lcd.print(PresetNumb+4);
-              lcd.setCursor(7,0);   lcd.print("Preset "); lcd.print(PresetNumb+2);
-              Serial.println("Switch-3 ");
-        break;
+//        case 2:
+//              MIDI.sendProgramChange(PresetNumb+2,MIDICHAN); 
+//              digitalWrite( LED1, LOW);
+//              digitalWrite( LED2, LOW);
+//              digitalWrite( LED3, HIGH);
+//              digitalWrite( LED4, LOW);
+//              digitalWrite( LED5, LOW);
+//              lcd.clear();   lcd.begin(16, 2);  lcd.setCursor(0,0); lcd.print(PresetNumb); lcd.print("-");lcd.print(PresetNumb+4);
+//              lcd.setCursor(7,0);   lcd.print("Preset "); lcd.print(PresetNumb+2);
+//              Serial.println("Switch-3 ");
+//        break;
 
 // Switch 4.                            Select preset on switch 4  
-        case 3:
-              MIDI.sendProgramChange(PresetNumb+3,MIDICHAN);
-              digitalWrite( LED1, LOW);
-              digitalWrite( LED2, LOW);
-              digitalWrite( LED3, LOW);
-              digitalWrite( LED4, HIGH);
-              digitalWrite( LED5, LOW);
-              lcd.clear();   lcd.begin(16, 2);  lcd.setCursor(0,0); lcd.print(PresetNumb); lcd.print("-");lcd.print(PresetNumb+4);
-              lcd.setCursor(7,0);   lcd.print("Preset "); lcd.print(PresetNumb+3);
-              Serial.println("Switch-4 ");
-        break;
+//        case 3:
+//              MIDI.sendProgramChange(PresetNumb+3,MIDICHAN);
+//              digitalWrite( LED1, LOW);
+//              digitalWrite( LED2, LOW);
+//              digitalWrite( LED3, LOW);
+//              digitalWrite( LED4, HIGH);
+//              digitalWrite( LED5, LOW);
+//              lcd.clear();   lcd.begin(16, 2);  lcd.setCursor(0,0); lcd.print(PresetNumb); lcd.print("-");lcd.print(PresetNumb+4);
+//              lcd.setCursor(7,0);   lcd.print("Preset "); lcd.print(PresetNumb+3);
+//              Serial.println("Switch-4 ");
+//        break;
 
 // Switch 5.                            Select preset on switch 5
-        case 4:
-              MIDI.sendProgramChange(PresetNumb+4,MIDICHAN);
-              digitalWrite( LED1, LOW);
-              digitalWrite( LED2, LOW);
-              digitalWrite( LED3, LOW);
-              digitalWrite( LED4, LOW);
-              digitalWrite( LED5, HIGH);
-              lcd.clear();   lcd.begin(16, 2);  lcd.setCursor(0,0); lcd.print(PresetNumb); lcd.print("-");lcd.print(PresetNumb+4);
-              lcd.setCursor(7,0);   lcd.print("Preset "); lcd.print(PresetNumb+4);
-              Serial.println("Switch-5 ");
-        break;
+//        case 4:
+//              MIDI.sendProgramChange(PresetNumb+4,MIDICHAN);
+//              digitalWrite( LED1, LOW);
+//              digitalWrite( LED2, LOW);
+//              digitalWrite( LED3, LOW);
+//              digitalWrite( LED4, LOW);
+//              digitalWrite( LED5, HIGH);
+//              lcd.clear();   lcd.begin(16, 2);  lcd.setCursor(0,0); lcd.print(PresetNumb); lcd.print("-");lcd.print(PresetNumb+4);
+//              lcd.setCursor(7,0);   lcd.print("Preset "); lcd.print(PresetNumb+4);
+//              Serial.println("Switch-5 ");
+//        break;
 
 
         
 // Switch 6.                            Scene 1  
-        case 5:
-              MIDI.sendControlChange(SceneSelect_CC, 0, MIDICHAN); 
-              digitalWrite( LED6, HIGH);
-              digitalWrite( LED7, LOW);
-              digitalWrite( LED8, LOW);
-              digitalWrite( LED9, LOW);
-              lcd.setCursor(7,1);   lcd.print("Scene 1");
-              Serial.println("Switch-6 ");
-        break;
+//        case 5:
+//              MIDI.sendControlChange(SceneSelect_CC, 0, MIDICHAN); 
+//              digitalWrite( LED6, HIGH);
+//              digitalWrite( LED7, LOW);
+//              digitalWrite( LED8, LOW);
+//              digitalWrite( LED9, LOW);
+//              lcd.setCursor(7,1);   lcd.print("Scene 1");
+//              Serial.println("Switch-6 ");
+//        break;
         
 // Switch 7.                            Scene 2 
-        case 6:
-              MIDI.sendControlChange(SceneSelect_CC, 1, MIDICHAN);
-              digitalWrite( LED6, LOW);
-              digitalWrite( LED7, HIGH);
-              digitalWrite( LED8, LOW);
-              digitalWrite( LED9, LOW);
-              lcd.setCursor(7,1);   lcd.print("Scene 2");
-              Serial.println("Switch-7 ");
-          break;
+//        case 6:
+//              MIDI.sendControlChange(SceneSelect_CC, 1, MIDICHAN);
+//              digitalWrite( LED6, LOW);
+//              digitalWrite( LED7, HIGH);
+//              digitalWrite( LED8, LOW);
+//              digitalWrite( LED9, LOW);
+//              lcd.setCursor(7,1);   lcd.print("Scene 2");
+//              Serial.println("Switch-7 ");
+//          break;
           
 // Switch 8.                            Scene 3          
-        case 7:
-              MIDI.sendControlChange(SceneSelect_CC, 2, MIDICHAN);
-              digitalWrite( LED6, LOW);
-              digitalWrite( LED7, LOW);
-              digitalWrite( LED8, HIGH);
-              digitalWrite( LED9, LOW);
-              lcd.setCursor(7,1);   lcd.print("Scene 3");
-              Serial.println("Switch-8 ");
-        break;
+//        case 7:
+//              MIDI.sendControlChange(SceneSelect_CC, 2, MIDICHAN);
+//              digitalWrite( LED6, LOW);
+//              digitalWrite( LED7, LOW);
+//              digitalWrite( LED8, HIGH);
+//              digitalWrite( LED9, LOW);
+//              lcd.setCursor(7,1);   lcd.print("Scene 3");
+//              Serial.println("Switch-8 ");
+//        break;
 
 // Switch 9.                            Scene 4            
 
-        case 8:
-               MIDI.sendControlChange(SceneSelect_CC, 3, MIDICHAN); 
-              digitalWrite( LED6, LOW);
-              digitalWrite( LED7, LOW);
-              digitalWrite( LED8, LOW);
-              digitalWrite( LED9, HIGH);
-              lcd.setCursor(7,1);   lcd.print("Scene 4");
-              Serial.println("Switch-9 ");
-          break;
+//        case 8:
+//               MIDI.sendControlChange(SceneSelect_CC, 3, MIDICHAN); 
+//              digitalWrite( LED6, LOW);
+//              digitalWrite( LED7, LOW);
+//              digitalWrite( LED8, LOW);
+//              digitalWrite( LED9, HIGH);
+//              lcd.setCursor(7,1);   lcd.print("Scene 4");
+//              Serial.println("Switch-9 ");
+//          break;
 
 // Switch 10.                         Bank Down
-        case 9:  
-         //PresetNumb=PresetNumb-95;
-         if (PresetNumb<5) PresetNumb=95; else if (PresetNumb=PresetNumb-5);
-         flashPin( leds[currentSwitch], pedalActiveFlash );
-         lcd.clear();lcd.setCursor(0,0); lcd.print(PresetNumb); lcd.print("-");lcd.print(PresetNumb+4);
-         Serial.println("Switch-10 ");
-          break;
+//        case 9:  
+//         //PresetNumb=PresetNumb-95;
+//         if (PresetNumb<5) PresetNumb=95; else if (PresetNumb=PresetNumb-5);
+//         flashPin( leds[currentSwitch], pedalActiveFlash );
+//         lcd.clear();lcd.setCursor(0,0); lcd.print(PresetNumb); lcd.print("-");lcd.print(PresetNumb+4);
+//         Serial.println("Switch-10 ");
+//          break;
 
 // Switch 11.                         Loop Record
-        case 10:
-          MIDI.sendControlChange(LooperRecord_CC, 0, MIDICHAN);
-          flashPin( leds[currentSwitch], pedalActiveFlash );
-          lcd.setCursor(0,2); lcd.print("                 ");
-          lcd.setCursor(0,2); lcd.print("Loop RECORD");
-           Serial.println("Switch-11 ");
-          break;
+//        case 10:
+//          MIDI.sendControlChange(LooperRecord_CC, 0, MIDICHAN);
+//          flashPin( leds[currentSwitch], pedalActiveFlash );
+//          lcd.setCursor(0,2); lcd.print("                 ");
+//          lcd.setCursor(0,2); lcd.print("Loop RECORD");
+//           Serial.println("Switch-11 ");
+//          break;
 
 // Switch 12.                         Loop Play      
-        case 11:
-        MIDI.sendControlChange(LooperPlay_CC, 0, MIDICHAN);
-        flashPin( leds[currentSwitch], pedalActiveFlash );
-        lcd.setCursor(0,2); lcd.print("                 ");
-        lcd.setCursor(0,2); lcd.print("Loop PLAY");
-         Serial.println("Switch-12 ");
-        break;
+//        case 11:
+//        MIDI.sendControlChange(LooperPlay_CC, 0, MIDICHAN);
+//        flashPin( leds[currentSwitch], pedalActiveFlash );
+//        lcd.setCursor(0,2); lcd.print("                 ");
+//        lcd.setCursor(0,2); lcd.print("Loop PLAY");
+//         Serial.println("Switch-12 ");
+//        break;
 
 // Switch 13.                         Loop Dub      
-        case 12:
-        MIDI.sendControlChange(LooperDub_CC, 0, MIDICHAN);
-        flashPin( leds[currentSwitch], pedalActiveFlash );
-        lcd.setCursor(0,2); lcd.print("                 ");
-        lcd.setCursor(0,2); lcd.print("Loop DUB");
-         Serial.println("Switch-13 ");
-        break;
+//        case 12:
+//        MIDI.sendControlChange(LooperDub_CC, 0, MIDICHAN);
+//        flashPin( leds[currentSwitch], pedalActiveFlash );
+//        lcd.setCursor(0,2); lcd.print("                 ");
+//        lcd.setCursor(0,2); lcd.print("Loop DUB");
+//         Serial.println("Switch-13 ");
+//        break;
 
 // Switch 14.                       Loop Bypass        
-        case 13:
-        MIDI.sendControlChange(LooperBypass_CC, 0, MIDICHAN);
-        flashPin( leds[currentSwitch], pedalActiveFlash );
-        lcd.setCursor(0,2); lcd.print("                 ");
-        lcd.setCursor(0,2); lcd.print("Loop BYPASS");
-         Serial.println("Switch-14 ");
-        break;
+//        case 13:
+//        MIDI.sendControlChange(LooperBypass_CC, 0, MIDICHAN);
+//        flashPin( leds[currentSwitch], pedalActiveFlash );
+//        lcd.setCursor(0,2); lcd.print("                 ");
+//        lcd.setCursor(0,2); lcd.print("Loop BYPASS");
+//         Serial.println("Switch-14 ");
+//        break;
 
 // Switch 15.                       Bank UP   
-        case 14:
-         if (PresetNumb>94) PresetNumb=0; else if (PresetNumb=PresetNumb+5);
-         flashPin( leds[currentSwitch], pedalActiveFlash );
-         lcd.clear(); lcd.setCursor(0,0); lcd.print(PresetNumb); lcd.print("-");lcd.print(PresetNumb+4);
-          Serial.println("Switch-15 ");
-          break;
+//        case 14:
+//         if (PresetNumb>94) PresetNumb=0; else if (PresetNumb=PresetNumb+5);
+//         flashPin( leds[currentSwitch], pedalActiveFlash );
+//         lcd.clear(); lcd.setCursor(0,0); lcd.print(PresetNumb); lcd.print("-");lcd.print(PresetNumb+4);
+//          Serial.println("Switch-15 ");
+//          break;
 
 // Switch 16.        
-        case 15:
-
-        flashPin( leds[currentSwitch], pedalActiveFlash );
-         Serial.println("Switch-16 ");
-        break;
-  
+//        case 15:
+//
+//        flashPin( leds[currentSwitch], pedalActiveFlash );
+//         Serial.println("Switch-16 ");
+//        break;
+//  
       }
       delay( BOUNCEDELAY );
     }
