@@ -1,44 +1,71 @@
 // Axe-FX midi.controller 23-Oct-2016 V6.9
 #include <MIDI.h>
 #include <LiquidCrystal.h>
+
+#include <SoftwareSerial.h>
+
+
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include "Adafruit_LEDBackpack.h"
+
+
 //#include <AxeFX.h>
 
 //MIDI_CREATE_INSTANCE(Type, SerialPort, Name)
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI); 
 
+#define LED1    22
 #define SWITCH1 24 
-#define SWITCH2 28
-#define SWITCH3 11
-#define SWITCH4 33
-#define SWITCH5 30
-#define SWITCH6 32
-#define SWITCH7 34 
-#define SWITCH8 36
-#define SWITCH9 38 
-#define SWITCH10 30
-#define SWITCH11 42
-#define SWITCH12 44
-#define SWITCH13 46
-#define SWITCH14 50
-#define SWITCH15 48 
-#define SWITCH16 52
 
-#define LED1 22
-#define LED2 26
-#define LED3 27
-#define LED4 29
-#define LED5 31
-#define LED6 33
-#define LED7 35
-#define LED8 37
-#define LED9 39
-#define LED10 41
-#define LED11 43
-#define LED12 45
-#define LED13 47
-#define LED14 49
-#define LED15 51
-#define LED16 53
+#define LED2    26
+#define SWITCH2 28
+
+#define LED3    30
+#define SWITCH3 32
+
+#define LED4    34
+#define SWITCH4 36
+
+#define LED5    38
+#define SWITCH5 40
+
+#define LED6    42
+#define SWITCH6 44
+
+#define LED7    42
+#define SWITCH7 44 
+
+#define LED8    42
+#define SWITCH8 44
+
+#define LED9    42
+#define SWITCH9 44 
+
+#define LED10    42
+#define SWITCH10 44
+
+#define LED11    42
+#define SWITCH11 44
+
+#define LED12    42
+#define SWITCH12 44
+
+
+#define LED13    42
+#define SWITCH13 44
+
+#define LED14    42
+#define SWITCH14 44
+
+#define LED15    42
+#define SWITCH15 44 
+
+#define LED16    42
+#define SWITCH16 44
+
+
+
 
 #define MIDICHAN 1 //MIDI channel
 
@@ -167,10 +194,14 @@ MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
  * KEY pin to analogl pin 0
  */
 //LiquidCrystal lcd(8, 13, 9, 4, 5, 6, 7);
-const int rs = 8, rw= 53, e = 9, d4 = 4, d5 = 5, d6 = 6, d7 = 7;
+const int rs = 8, rw= 13, e = 9, d4 = 4, d5 = 5, d6 = 6, d7 = 7;
 LiquidCrystal   lcd(rs, rw, e,  d4, d5, d6, d7);
 //LiquidCrystal lcd(8,  13, 9,  4,  5,  6, 7);
 //LiquidCrystal lcd2(8, 10, 9, 4, 5, 6); //Strange characters on Lcd1 when defining lcd2. Pending debug
+
+
+Adafruit_7segment matrix = Adafruit_7segment();
+
 
 // constants
 static const unsigned ttt = 50;      // tempo led illumination time (ms)
@@ -179,7 +210,9 @@ static const unsigned ledPin = 12;   // tempoLED pin
 // Variables: 
 int switches[16] = { SWITCH1, SWITCH2, SWITCH3, SWITCH4, SWITCH5, SWITCH6, SWITCH7, SWITCH8,
                    SWITCH9, SWITCH10, SWITCH11, SWITCH12, SWITCH13, SWITCH14, SWITCH15, SWITCH16};
-int switchState[16] = { HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH,}; 
+//int switchState[16] = { HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH,}; 
+int switchState[16] = { LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW,}; 
+
 // Initial state of switch is high due to internal pullup
 int leds[16] = { LED1, LED2, LED3, LED4, LED5, LED6, LED7, LED8, LED9, LED10, LED11, LED12, LED13, LED14, LED15, LED16,};
 int currentSwitch = 0;
@@ -192,7 +225,7 @@ char pname[32];
 byte pdata[12];
 int initial = 0;
 int preset = 0;
-int scene = 0;
+int scene = 1;
 int ppreset = 0;
 int blk = 0;
 int cc = 0;
@@ -250,6 +283,22 @@ void setup() {
     pinMode( leds[currentSwitch], OUTPUT );             // Set pin for LED
   flashPin( leds[currentSwitch], 100 ); // Flash LED
   }
+
+  // 7Seg
+  matrix.begin(0x70);  // pass in the address
+  for (int i=0; i<=5; i++) {
+    matrix.writeDigitNum(i, 0);
+    matrix.drawColon(false);
+    delay(100);
+    matrix.writeDisplay();
+  }
+  Serial.print("7 Seg Line: ");
+  Serial.println(currentPresetNumber);
+  matrix.print(currentPresetNumber ,DEC);
+  matrix.writeDisplay();
+
+  updLCD = true;
+  
   Serial.println("Finished setup");
 
 }
@@ -276,6 +325,8 @@ void loop() {
 
 // update LCD display
     if (updLCD == true) {
+
+        Serial.println("LCD update");
         lcd.clear();
         lcd.setCursor(0,0);
         lcd.print(pname);
@@ -286,11 +337,14 @@ void loop() {
         lcd.print("Scn:");
         lcd.print(scene);
         updLCD = false;
+
+        matrix.print(currentPresetNumber ,DEC);
+        matrix.writeDisplay();
 //Serial.print(preset);//Serial.print(" pname:");//Serial.print(preset);//Serial.print(" Scene: ");//Serial.println(scene);        
     }
 
   
-  for( currentSwitch = 0; currentSwitch < 16; currentSwitch++ ) {
+  for( currentSwitch = 0; currentSwitch < 2; currentSwitch++ ) {
     if((digitalRead(switches[currentSwitch]) != switchState[currentSwitch] )&&(switchState[currentSwitch] == HIGH)){
       switch( currentSwitch ) {
 
@@ -311,57 +365,57 @@ void loop() {
         break;
 
 // Switch 2.                            Select preset on switch 2  
-//        case 1:
-//              MIDI.sendProgramChange(PresetNumb+1,MIDICHAN);
-//              digitalWrite( LED1, LOW);
-//              digitalWrite( LED2, HIGH);
-//              digitalWrite( LED3, LOW);
-//              digitalWrite( LED4, LOW);
-//              digitalWrite( LED5, LOW);
-//              lcd.clear();   lcd.begin(16, 2);  lcd.setCursor(0,0); lcd.print(PresetNumb); lcd.print("-");lcd.print(PresetNumb+4);
-//              lcd.setCursor(7,0);   lcd.print("Preset "); lcd.print(PresetNumb+1);
-//              Serial.println("Switch-2 ");
-//        break;
+        case 1:
+              MIDI.sendProgramChange(PresetNumb+1,MIDICHAN);
+              digitalWrite( LED1, LOW);
+              digitalWrite( LED2, HIGH);
+              digitalWrite( LED3, LOW);
+              digitalWrite( LED4, LOW);
+              digitalWrite( LED5, LOW);
+              lcd.clear();   lcd.begin(16, 2);  lcd.setCursor(0,0); lcd.print(PresetNumb); lcd.print("-");lcd.print(PresetNumb+4);
+              lcd.setCursor(7,0);   lcd.print("Preset "); lcd.print(PresetNumb+1);
+              Serial.println("Switch-2 ");
+        break;
 
         
 // Switch 3.                          Select preset on switch 3 
-//        case 2:
-//              MIDI.sendProgramChange(PresetNumb+2,MIDICHAN); 
-//              digitalWrite( LED1, LOW);
-//              digitalWrite( LED2, LOW);
-//              digitalWrite( LED3, HIGH);
-//              digitalWrite( LED4, LOW);
-//              digitalWrite( LED5, LOW);
-//              lcd.clear();   lcd.begin(16, 2);  lcd.setCursor(0,0); lcd.print(PresetNumb); lcd.print("-");lcd.print(PresetNumb+4);
-//              lcd.setCursor(7,0);   lcd.print("Preset "); lcd.print(PresetNumb+2);
-//              Serial.println("Switch-3 ");
-//        break;
+        case 2:
+              MIDI.sendProgramChange(PresetNumb+2,MIDICHAN); 
+              digitalWrite( LED1, LOW);
+              digitalWrite( LED2, LOW);
+              digitalWrite( LED3, HIGH);
+              digitalWrite( LED4, LOW);
+              digitalWrite( LED5, LOW);
+              lcd.clear();   lcd.begin(16, 2);  lcd.setCursor(0,0); lcd.print(PresetNumb); lcd.print("-");lcd.print(PresetNumb+4);
+              lcd.setCursor(7,0);   lcd.print("Preset "); lcd.print(PresetNumb+2);
+              Serial.println("Switch-3 ");
+        break;
 
 // Switch 4.                            Select preset on switch 4  
-//        case 3:
-//              MIDI.sendProgramChange(PresetNumb+3,MIDICHAN);
-//              digitalWrite( LED1, LOW);
-//              digitalWrite( LED2, LOW);
-//              digitalWrite( LED3, LOW);
-//              digitalWrite( LED4, HIGH);
-//              digitalWrite( LED5, LOW);
-//              lcd.clear();   lcd.begin(16, 2);  lcd.setCursor(0,0); lcd.print(PresetNumb); lcd.print("-");lcd.print(PresetNumb+4);
-//              lcd.setCursor(7,0);   lcd.print("Preset "); lcd.print(PresetNumb+3);
-//              Serial.println("Switch-4 ");
-//        break;
+        case 3:
+              MIDI.sendProgramChange(PresetNumb+3,MIDICHAN);
+              digitalWrite( LED1, LOW);
+              digitalWrite( LED2, LOW);
+              digitalWrite( LED3, LOW);
+              digitalWrite( LED4, HIGH);
+              digitalWrite( LED5, LOW);
+              lcd.clear();   lcd.begin(16, 2);  lcd.setCursor(0,0); lcd.print(PresetNumb); lcd.print("-");lcd.print(PresetNumb+4);
+              lcd.setCursor(7,0);   lcd.print("Preset "); lcd.print(PresetNumb+3);
+              Serial.println("Switch-4 ");
+        break;
 
 // Switch 5.                            Select preset on switch 5
-//        case 4:
-//              MIDI.sendProgramChange(PresetNumb+4,MIDICHAN);
-//              digitalWrite( LED1, LOW);
-//              digitalWrite( LED2, LOW);
-//              digitalWrite( LED3, LOW);
-//              digitalWrite( LED4, LOW);
-//              digitalWrite( LED5, HIGH);
-//              lcd.clear();   lcd.begin(16, 2);  lcd.setCursor(0,0); lcd.print(PresetNumb); lcd.print("-");lcd.print(PresetNumb+4);
-//              lcd.setCursor(7,0);   lcd.print("Preset "); lcd.print(PresetNumb+4);
-//              Serial.println("Switch-5 ");
-//        break;
+        case 4:
+              MIDI.sendProgramChange(PresetNumb+4,MIDICHAN);
+              digitalWrite( LED1, LOW);
+              digitalWrite( LED2, LOW);
+              digitalWrite( LED3, LOW);
+              digitalWrite( LED4, LOW);
+              digitalWrite( LED5, HIGH);
+              lcd.clear();   lcd.begin(16, 2);  lcd.setCursor(0,0); lcd.print(PresetNumb); lcd.print("-");lcd.print(PresetNumb+4);
+              lcd.setCursor(7,0);   lcd.print("Preset "); lcd.print(PresetNumb+4);
+              Serial.println("Switch-5 ");
+        break;
 
 
         
@@ -515,7 +569,7 @@ void HandleSysEx(byte *SysExArray, unsigned int size) {
 
     int sizear = 0;
     if(SysExArray[0]==0xF0) {
-//      Serial.print("With uint8_t scalar: "); PrintHex8(SysExArray,size); Serial.print("\n"); 
+      Serial.print("With uint8_t scalar: "); PrintHex8(SysExArray,size); Serial.print("\n"); 
         //Serial.print("MIDI IN:");Serial.println(SysExArray[5],HEX);
         switch (SysExArray[5]) {
             case 0x0F: { // preset name 
