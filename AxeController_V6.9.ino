@@ -191,8 +191,8 @@ bool printAllMidiMessages = false;
  * KEY pin to analogl pin 0
  */
 //LiquidCrystal lcd(8, 13, 9, 4, 5, 6, 7);
-const int rs = 8, rw= 13, e = 9, d4 = 4, d5 = 5, d6 = 6, d7 = 7;
-LiquidCrystal   lcd(rs, rw, e,  d4, d5, d6, d7);
+const int rs = 3, e = 2, d4 = 4, d5 = 5, d6 = 6, d7 = 7;
+LiquidCrystal   lcd(rs,  e,  d4, d5, d6, d7);
 //LiquidCrystal lcd(8,  13, 9,  4,  5,  6, 7);
 //LiquidCrystal lcd2(8, 10, 9, 4, 5, 6); //Strange characters on Lcd1 when defining lcd2. Pending debug
 
@@ -213,6 +213,8 @@ int leds[16] = { LED1, LED2, LED3, LED4, LED5, LED6, LED7, LED8, LED9, LED10, LE
 
 int currentSwitch = 0;
 int pedalActiveFlash = 50; // Delay for flash when pedal is pressed
+
+int bank = 0;
 int PresetNumb = 0; //Initial preset number for preset selection
 int currentPresetNumber = 0; //Variable for storing current preset
 bool tunerStatus = false; // Tuner on/off
@@ -581,7 +583,10 @@ void loop() {
 
 ////////// UTILITY FUNCTIONS ////////////////////////////////////////////
 void requestPresetChangeToPreset(int presetToChangeTo, int ledToFlash){
-  MIDI.sendProgramChange(presetToChangeTo,MIDICHAN);  
+  MIDI.sendControlChange(0,2,MIDICHAN);
+  Serial.println("BANK B");
+  MIDI.sendProgramChange(2,MIDICHAN);
+//  MIDI.sendProgramChange(presetToChangeTo-127,MIDICHAN);  
   currentPresetNumber;
   digitalWrite(ledToFlash,HIGH);
   delay(500);
@@ -609,7 +614,7 @@ void flashPin( int ledPin, int flashDelay ) {
 void toggleTuner(int tunerSwitchNumber){
     if (tunerStatus == false)
     {
-      MIDI.sendControlChange(15,127,1);
+      MIDI.sendControlChange(Tuner_CC,127,MIDICHAN);
       tunerStatus = true;
       digitalWrite(leds[tunerSwitchNumber],HIGH);
       lcd.clear();
@@ -618,7 +623,7 @@ void toggleTuner(int tunerSwitchNumber){
     else
     {
       tunerStatus = false;
-      MIDI.sendControlChange(15,0,1);
+      MIDI.sendControlChange(Tuner_CC,0,MIDICHAN);
       digitalWrite(leds[tunerSwitchNumber],LOW);
       updLCD = true;
     }   
