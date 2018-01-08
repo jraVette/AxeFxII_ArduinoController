@@ -211,6 +211,12 @@ int switches[switchCount] = { SWITCH1, SWITCH2, SWITCH3,  SWITCH4,  SWITCH5,  SW
 int switchState[switchCount] = { LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW}; 
 int leds[16] = { LED1, LED2, LED3, LED4, LED5, LED6, LED7, LED8, LED9, LED10, LED11, LED12, LED13, LED14};
 
+const int nExtAmpSwitchPins = 5;
+int externalAmpSwitchingPins[nExtAmpSwitchPins] = {8, 9, 10, 11, 12};
+int externalAmpChannelPins[2] = {9, 10};
+int externalSoloModePin = 11;
+int externalFxLoopPin = 12;
+
 int currentSwitch = 0;
 int pedalActiveFlash = 50; // Delay for flash when pedal is pressed
 
@@ -265,6 +271,21 @@ void setup() {
   lcd.setCursor(0,0); 
   lcd.print("AxeFX Controller"); 
 
+  //Setup external amp pins
+  for (int iPin = 0; iPin<=nExtAmpSwitchPins-1; iPin++){
+    pinMode(externalAmpSwitchingPins[iPin],OUTPUT);
+    Serial.print("iPin: "); Serial.print(iPin);
+    Serial.print("Switching pin: ");
+    Serial.println(externalAmpSwitchingPins[iPin]);
+    digitalWrite(externalAmpSwitchingPins[iPin],HIGH);
+    delay(200);
+    digitalWrite(externalAmpSwitchingPins[iPin],LOW);
+    delay(200);
+    digitalWrite(externalAmpSwitchingPins[iPin],HIGH);
+  }
+
+
+
   //Setup MIDI
   MIDI.begin(0);
   MIDI.turnThruOff();
@@ -285,6 +306,9 @@ void setup() {
     pinMode( leds[currentSwitch], OUTPUT );             // Set pin for LED
   flashPin( leds[currentSwitch], 100 ); // Flash LED
   }
+
+
+ 
 
   // 7Seg
   matrix.begin(0x70);  // pass in the address
@@ -358,7 +382,7 @@ void loop() {
         break;
         case 3:          // Switch 4                            Preset down
           currentPresetNumber--;
-          requestPresetChangeToPreset(currentPresetNumber, leds[currentSwitch]);
+        requestPresetChangeToPreset(currentPresetNumber, leds[currentSwitch]);
           Serial.println("Switch-4 ");
         break;
         case 4:          // Switch 5                            Preset up
@@ -373,15 +397,15 @@ void loop() {
           Serial.println("Switch-6 ");
         break;
         case 6:
-          toggleTuner(currentSwitch);
+          requestExtAmpChanngelChangeToChannel(1);
           Serial.println("Switch-7 ");
         break;
         case 7:
-          toggleTuner(currentSwitch);
+          requestExtAmpChanngelChangeToChannel(2);
           Serial.println("Switch-8 ");
         break;   
         case 8:
-          toggleTuner(currentSwitch);
+          requestExtAmpChanngelChangeToChannel(3);
           Serial.println("Switch-9 ");
         break;
         case 9:
@@ -582,12 +606,40 @@ void loop() {
 //  
 
 ////////// UTILITY FUNCTIONS ////////////////////////////////////////////
+void requestExtAmpChanngelChangeToChannel(int channelToChangeTo) {
+  Serial.print("AMP CHANGE to channel ");
+  Serial.print(channelToChangeTo);
+  switch( channelToChangeTo ) {
+    for (int iLed = 0; iLed<3; iLed++){
+      digitalWrite(externalAmpChannelPins[iLed],LOW);
+    }
+    
+    case 1:  
+      digitalWrite(externalAmpChannelPins[1],HIGH);
+      digitalWrite(externalAmpChannelPins[0],LOW);
+      digitalWrite(leds[externalAmpChannelPins[0]],HIGH);
+    break;
+    case 2:  
+      digitalWrite(externalAmpChannelPins[1],HIGH);
+      digitalWrite(externalAmpChannelPins[0],HIGH);  
+      digitalWrite(leds[externalAmpChannelPins[1]],HIGH);
+    break;
+    case 3:  
+      digitalWrite(externalAmpChannelPins[0],HIGH);    
+      digitalWrite(externalAmpChannelPins[1],LOW);
+      digitalWrite(leds[externalAmpChannelPins[2]],HIGH);    
+    break;
+  }
+}
 void requestPresetChangeToPreset(int presetToChangeTo, int ledToFlash){
-  MIDI.sendControlChange(0,2,MIDICHAN);
-  Serial.println("BANK B");
-  MIDI.sendProgramChange(2,MIDICHAN);
-//  MIDI.sendProgramChange(presetToChangeTo-127,MIDICHAN);  
-  currentPresetNumber;
+  if (currentPresetNumber>127){
+    currentPresetNumber = 0;
+  }
+  else if (currentPresetNumber<0){
+    currentPresetNumber = 127;
+  }  
+  MIDI.sendProgramChange(presetToChangeTo,MIDICHAN);  
+  lcd.clear();
   digitalWrite(ledToFlash,HIGH);
   delay(500);
   digitalWrite(ledToFlash,LOW);
