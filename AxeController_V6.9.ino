@@ -18,54 +18,48 @@ MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
 //Debugging flags
 bool printAllMidiMessages = false;
 
-#define LED1    22
-#define SWITCH1 24 
+#define LED1    23
+#define SWITCH1 25 
 
-#define LED2    26
-#define SWITCH2 28
+#define LED2    27
+#define SWITCH2 29
 
-#define LED3    30
-#define SWITCH3 32
+#define LED3    31
+#define SWITCH3 33
 
-#define LED4    34
-#define SWITCH4 36
+#define LED4    35
+#define SWITCH4 37
 
-#define LED5    38
-#define SWITCH5 40
+#define LED5    39
+#define SWITCH5 41
 
-#define LED6    42
-#define SWITCH6 44
+#define LED6    22
+#define SWITCH6 24
 
-#define LED7    42
-#define SWITCH7 44 
+#define LED7    26
+#define SWITCH7 28 
 
-#define LED8    42
-#define SWITCH8 44
+#define LED8    30
+#define SWITCH8 32
 
-#define LED9    42
-#define SWITCH9 44 
+#define LED9    34
+#define SWITCH9 36 
 
-#define LED10    42
-#define SWITCH10 44
+#define LED10    38
+#define SWITCH10 40
 
 #define LED11    42
 #define SWITCH11 44
 
-#define LED12    42
-#define SWITCH12 44
+#define LED12    46
+#define SWITCH12 48
 
 
-#define LED13    42
-#define SWITCH13 44
+#define LED13    50
+#define SWITCH13 52
 
-#define LED14    42
-#define SWITCH14 44
-
-#define LED15    42
-#define SWITCH15 44 
-
-#define LED16    42
-#define SWITCH16 44
+#define LED14    43
+#define SWITCH14 45
 
 
 
@@ -190,7 +184,7 @@ bool printAllMidiMessages = false;
 #define Rotary1X/Y_CC 125
 #define Rotary2X/Y_CC 126
 
-#define BOUNCEDELAY 25
+#define BOUNCEDELAY 75 //was 25ms
 
 /* LCD definition
  * lcd(RS, Enable, D4, D5, D6, D7, BL)
@@ -211,17 +205,17 @@ static const unsigned ttt = 50;      // tempo led illumination time (ms)
 static const unsigned ledPin = 12;   // tempoLED pin
 
 // Variables: 
-const int switchCount = 16;
-int switches[switchCount] = { SWITCH1, SWITCH2, SWITCH3, SWITCH4, SWITCH5, SWITCH6, SWITCH7, SWITCH8,
-                   SWITCH9, SWITCH10, SWITCH11, SWITCH12, SWITCH13, SWITCH14, SWITCH15, SWITCH16};
-int switchState[switchCount] = { LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW}; 
+const int switchCount = 14;
+int switches[switchCount] = { SWITCH1, SWITCH2, SWITCH3,  SWITCH4,  SWITCH5,  SWITCH6,  SWITCH7, 
+                              SWITCH8, SWITCH9, SWITCH10, SWITCH11, SWITCH12, SWITCH13, SWITCH14};
+int switchState[switchCount] = { LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW}; 
+int leds[16] = { LED1, LED2, LED3, LED4, LED5, LED6, LED7, LED8, LED9, LED10, LED11, LED12, LED13, LED14};
 
-// Initial state of switch is high due to internal pullup
-int leds[16] = { LED1, LED2, LED3, LED4, LED5, LED6, LED7, LED8, LED9, LED10, LED11, LED12, LED13, LED14, LED15, LED16,};
 int currentSwitch = 0;
 int pedalActiveFlash = 50; // Delay for flash when pedal is pressed
 int PresetNumb = 0; //Initial preset number for preset selection
 int currentPresetNumber = 0; //Variable for storing current preset
+bool tunerStatus = false; // Tuner on/off
 
 int sceneLedCount 		= 3;
 int sceneLeds[3] 		= { LED1, LED2, LED3};
@@ -304,6 +298,7 @@ void setup() {
   matrix.writeDisplay();
 
   updLCD = true;
+  requestSceneChangeToScene(0);
   
   Serial.println("Finished setup");
 
@@ -359,8 +354,57 @@ void loop() {
       	  requestSceneChangeToScene(currentSwitch);
 			    Serial.println("Switch-3 ");
         break;
+        case 3:          // Switch 4                            Preset down
+          currentPresetNumber--;
+          requestPresetChangeToPreset(currentPresetNumber, leds[currentSwitch]);
+          Serial.println("Switch-4 ");
+        break;
+        case 4:          // Switch 5                            Preset up
+          Serial.print("Preset: "); Serial.println(currentPresetNumber);
+          currentPresetNumber++;
+          Serial.print("Preset: "); Serial.println(currentPresetNumber);
+          requestPresetChangeToPreset(currentPresetNumber, leds[currentSwitch]);
+          Serial.println("Switch-5 ");
+        break;        
+        case 5:
+          toggleTuner(currentSwitch);
+          Serial.println("Switch-6 ");
+        break;
+        case 6:
+          toggleTuner(currentSwitch);
+          Serial.println("Switch-7 ");
+        break;
+        case 7:
+          toggleTuner(currentSwitch);
+          Serial.println("Switch-8 ");
+        break;   
+        case 8:
+          toggleTuner(currentSwitch);
+          Serial.println("Switch-9 ");
+        break;
+        case 9:
+          toggleTuner(currentSwitch);
+          Serial.println("Switch-10 ");
+        break;    
+        case 10:
+          toggleTuner(currentSwitch);
+          Serial.println("Switch-11 ");
+        break;
+        case 11:
+          toggleTuner(currentSwitch);
+          Serial.println("Switch-12 ");
+        break;    
+        case 12:
+          toggleTuner(currentSwitch);
+          Serial.println("Switch-13 ");
+        break;
+        case 13:
+          toggleTuner(currentSwitch);
+          Serial.println("Switch-14 ");
+        break;            
        }
       delay( BOUNCEDELAY );
+      
     }
     switchState[currentSwitch] = digitalRead( switches[currentSwitch] );
   }  
@@ -536,6 +580,15 @@ void loop() {
 //  
 
 ////////// UTILITY FUNCTIONS ////////////////////////////////////////////
+void requestPresetChangeToPreset(int presetToChangeTo, int ledToFlash){
+  MIDI.sendProgramChange(presetToChangeTo,MIDICHAN);  
+  currentPresetNumber;
+  digitalWrite(ledToFlash,HIGH);
+  delay(500);
+  digitalWrite(ledToFlash,LOW);
+  requestSceneChangeToScene(0);
+}
+
 void requestSceneChangeToScene(int switchNumber) {
 	currentScene = scenesToChangeTo[switchNumber] - 1;
 	MIDI.sendControlChange(SceneSelect_CC, currentScene, MIDICHAN); 
@@ -551,6 +604,24 @@ void flashPin( int ledPin, int flashDelay ) {
   digitalWrite( ledPin, HIGH );
   delay( flashDelay );
   digitalWrite( ledPin, LOW );
+}
+
+void toggleTuner(int tunerSwitchNumber){
+    if (tunerStatus == false)
+    {
+      MIDI.sendControlChange(15,127,1);
+      tunerStatus = true;
+      digitalWrite(leds[tunerSwitchNumber],HIGH);
+      lcd.clear();
+      lcd.write("Tuner ON");
+    }
+    else
+    {
+      tunerStatus = false;
+      MIDI.sendControlChange(15,0,1);
+      digitalWrite(leds[tunerSwitchNumber],LOW);
+      updLCD = true;
+    }   
 }
 
 
