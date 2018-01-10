@@ -18,51 +18,47 @@ MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
 //Debugging flags
 bool printAllMidiMessages = false;
 
-#define LED1    23
-#define SWITCH1 25 
+#define LED0    23
+#define SWITCH0 25 
 
-#define LED2    27
-#define SWITCH2 29
+#define LED1    27
+#define SWITCH1 29
 
-#define LED3    31
-#define SWITCH3 33
+#define LED2    31
+#define SWITCH2 33
 
-#define LED4    35
-#define SWITCH4 37
+#define LED3    35
+#define SWITCH3 37
 
-#define LED5    39
-#define SWITCH5 41
+#define LED4    39
+#define SWITCH4 41
 
-#define LED6    22
-#define SWITCH6 24
+#define LED5    22
+#define SWITCH5 24
 
-#define LED7    26
-#define SWITCH7 28 
+#define LED6    26
+#define SWITCH6 28 
 
-#define LED8    30
-#define SWITCH8 32
+#define LED7    30
+#define SWITCH7 32
 
-#define LED9    34
-#define SWITCH9 36 
+#define LED8    34
+#define SWITCH8 36 
 
-#define LED10    38
-#define SWITCH10 40
+#define LED9    38
+#define SWITCH9 40
 
-#define LED11    42
-#define SWITCH11 44
+#define LED10    42
+#define SWITCH10 44
 
-#define LED12    46
-#define SWITCH12 48
+#define LED11    46
+#define SWITCH11 48
 
+#define LED12    50
+#define SWITCH12 52
 
-#define LED13    50
-#define SWITCH13 52
-
-#define LED14    43
-#define SWITCH14 45
-
-
-
+#define LED13    43
+#define SWITCH13 45
 
 #define MIDICHAN 1 //MIDI channel
 
@@ -186,19 +182,10 @@ bool printAllMidiMessages = false;
 
 #define BOUNCEDELAY 175 //was 25ms
 
-/* LCD definition
- * lcd(RS, Enable, D4, D5, D6, D7, BL)
- * KEY pin to analogl pin 0
- */
-//LiquidCrystal lcd(8, 13, 9, 4, 5, 6, 7);
+//LCD & 7seg
 const int rs = 3, e = 2, d4 = 4, d5 = 5, d6 = 6, d7 = 7;
 LiquidCrystal   lcd(rs,  e,  d4, d5, d6, d7);
-//LiquidCrystal lcd(8,  13, 9,  4,  5,  6, 7);
-//LiquidCrystal lcd2(8, 10, 9, 4, 5, 6); //Strange characters on Lcd1 when defining lcd2. Pending debug
-
-
-Adafruit_7segment matrix = Adafruit_7segment();
-
+Adafruit_7segment matrix = Adafruit_7segment(); //communicating over i2c bus
 
 // constants
 static const unsigned ttt = 50;      // tempo led illumination time (ms)
@@ -206,18 +193,22 @@ static const unsigned ledPin = 12;   // tempoLED pin
 
 // Variables: 
 const int switchCount = 14;
-int switches[switchCount] = { SWITCH1, SWITCH2, SWITCH3,  SWITCH4,  SWITCH5,  SWITCH6,  SWITCH7, 
-                              SWITCH8, SWITCH9, SWITCH10, SWITCH11, SWITCH12, SWITCH13, SWITCH14};
+int switches[switchCount] = { SWITCH0, SWITCH1, SWITCH2, SWITCH3,  SWITCH4,  SWITCH5,  SWITCH6,  SWITCH7, 
+                              SWITCH8, SWITCH9, SWITCH10, SWITCH11, SWITCH12, SWITCH13};
 int switchState[switchCount] = { LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW}; 
-int leds[16] = { LED1, LED2, LED3, LED4, LED5, LED6, LED7, LED8, LED9, LED10, LED11, LED12, LED13, LED14};
+int leds[switchCount] = { LED0, LED1, LED2, LED3, LED4, LED5, LED6, LED7, LED8, LED9, LED10, LED11, LED12, LED13};
 
-int externalAmpChannelPins[2] = {9, 10};
-int externalAmpChannelSwitches[3] = {7,8,9};
-int externalAmpCurrentChanngel = 1;
-int externalSoloModePin = 11;
+int externalAmpChannelRelayPins[2] = {9,10};
+const int nExternalAmpLeds = 3;
+int externalAmpLeds[3] = {LED6, LED7, LED8};
+int externalAmpCurrentChannel = 0;
+
+int externalSoloModeRelayPin = 11;
 bool externalSoloModeState = false;
-int externalFxLoopPin = 12;
-int externalFxLoopSwitch = 10;
+int externalSoloModeLed = LED9;
+
+int externalFxLoopRelayPin = 12;
+int externalFxLoopLed = 10;
 bool externalFxLoopState = false;
 
 int currentSwitch = 0;
@@ -228,16 +219,16 @@ int PresetNumb = 0; //Initial preset number for preset selection
 int currentPresetNumber = 0; //Variable for storing current preset
 bool tunerStatus = false; // Tuner on/off
 
-int sceneLedCount 		= 3;
-int sceneLeds[5] 		= { LED1, LED2, LED3, LED4, LED5};
-int scenesToChangeTo[3] = { 1,    2,    3};
+const int sceneLedCount 		= 5;
+int sceneLeds[sceneLedCount] 		= {LED0, LED1, LED2, LED3, LED4};
+
 
 unsigned long tt;      // time tempo sysex pulse detected
 char pname[32];
 byte pdata[12];
 int initial = 0;
 int preset = 0;
-int currentScene = 1;
+int currentScene = 0;
 int ppreset = 0;
 int blk = 0;
 int cc = 0;
@@ -275,27 +266,15 @@ void setup() {
   lcd.print("AxeFX Controller"); 
 
   //Setup external amp pins
-  pinMode(     externalAmpChannelPins[0],OUTPUT);
-  digitalWrite(externalAmpChannelPins[0],HIGH);
-  pinMode(     externalAmpChannelPins[1],OUTPUT);
-  digitalWrite(externalAmpChannelPins[1],HIGH);
-  pinMode(     externalSoloModePin,      OUTPUT);
-  digitalWrite(externalSoloModePin,      HIGH);
-  pinMode(     externalFxLoopPin,        OUTPUT);
-  digitalWrite(externalFxLoopPin,        HIGH);
-//  for (int iPin = 0; iPin<=nExtAmpSwitchPins-1; iPin++){
-//    pinMode(externalAmpSwitchingPins[iPin],OUTPUT);
-//    Serial.print("iPin: "); Serial.print(iPin);
-//    Serial.print("Switching pin: ");
-//    Serial.println(externalAmpSwitchingPins[iPin]);
-//    digitalWrite(externalAmpSwitchingPins[iPin],HIGH);
-//    delay(200);
-//    digitalWrite(externalAmpSwitchingPins[iPin],LOW);
-//    delay(200);
-//    digitalWrite(externalAmpSwitchingPins[iPin],HIGH);
-//  }
-
-
+ 
+  pinMode(     externalAmpChannelRelayPins[0],OUTPUT);
+  digitalWrite(externalAmpChannelRelayPins[0],HIGH);
+  pinMode(     externalAmpChannelRelayPins[1],OUTPUT);
+  digitalWrite(externalAmpChannelRelayPins[1],HIGH);
+  pinMode(     externalSoloModeRelayPin,      OUTPUT);
+  digitalWrite(externalSoloModeRelayPin,      HIGH);
+  pinMode(     externalFxLoopRelayPin,        OUTPUT);
+  digitalWrite(externalFxLoopRelayPin,        HIGH);
 
   //Setup MIDI
   MIDI.begin(0);
@@ -319,24 +298,17 @@ void setup() {
   }
 
 
- 
 
   // 7Seg
-  matrix.begin(0x70);  // pass in the address
+  matrix.begin(0x70);  // pass in the address       
   for (int i=0; i<=5; i++) {
     matrix.writeDigitNum(i, 0);
     matrix.drawColon(false);
     delay(100);
     matrix.writeDisplay();
   }
-  Serial.print("7 Seg Line: ");
-  Serial.println(currentPresetNumber);
-  matrix.print(currentPresetNumber ,DEC);
-  matrix.writeDisplay();
-
   updLCD = true;
-  requestSceneChangeToScene(0);
-//  requestExtAmpChanngelChangeToChannel(1);
+  requestSceneChangeToScene(0,0);
   requestExtAmpFxLoopStateChange();
   
   Serial.println("Finished setup");
@@ -366,14 +338,19 @@ void loop() {
       lcd.setCursor(0,0);
       lcd.print(pname);
       lcd.setCursor(0,1);
-      lcd.print("Prog:");
-      lcd.print(preset);
-      lcd.setCursor(8,1);
-      lcd.print("Scn:");
-      lcd.print(currentScene);
-      updLCD = false;
-      matrix.print(currentPresetNumber ,DEC);
+      lcd.print("Ch: "); lcd.print(externalAmpCurrentChannel+1);
+//      lcd.print("Prog:");
+//      lcd.print(preset);
+//      lcd.setCursor(8,1);
+//      lcd.print("Scn:");
+//      lcd.print(currentScene);
+      matrix.writeDigitNum(0, (currentPresetNumber / 100) % 10, false);
+      matrix.writeDigitNum(1, (currentPresetNumber / 10) % 10, false);
+      matrix.drawColon(false);
+      matrix.writeDigitNum(3, (currentPresetNumber / 1) % 10, true);
+      matrix.writeDigitNum(4, currentScene, false);
       matrix.writeDisplay();
+      updLCD = false;
   }
   
   for( currentSwitch = 0; currentSwitch < switchCount; currentSwitch++ ) {
@@ -382,37 +359,37 @@ void loop() {
       Serial.println(currentSwitch+1);
       switch( currentSwitch ) {
         case 0: 
-          requestSceneChangeToScene(0);
+          requestSceneChangeToScene(0,currentSwitch);
   			  Serial.print("Switch:  "); Serial.println(currentSwitch);                      
         break;
     		case 1: 
-          requestSceneChangeToScene(1);
+          requestSceneChangeToScene(1,currentSwitch);
           Serial.print("Switch:  "); Serial.println(currentSwitch);                      
         break;
   		  case 2: 
-          requestSceneChangeToScene(2);
+          requestSceneChangeToScene(2,currentSwitch);
           Serial.print("Switch:  "); Serial.println(currentSwitch);                      
         break;
         case 3: 
-          requestSceneChangeToScene(3);
+          requestSceneChangeToScene(3,currentSwitch);
           Serial.print("Switch:  "); Serial.println(currentSwitch);                      
         break;
         case 4: 
-          requestSceneChangeToScene(4);
+          requestSceneChangeToScene(4,currentSwitch);
           Serial.print("Switch:  "); Serial.println(currentSwitch);                      
         break;
             
 
         case 6:
-          requestExtAmpChanngelChangeToChannel(1);
+          requestExtAmpChanngelChangeToChannel(0);
           Serial.print("Switch:  "); Serial.println(currentSwitch);                      
         break;
         case 7:
-          requestExtAmpChanngelChangeToChannel(2);
+          requestExtAmpChanngelChangeToChannel(1);
           Serial.print("Switch:  "); Serial.println(currentSwitch);                      
         break;   
         case 8:
-          requestExtAmpChanngelChangeToChannel(3);
+          requestExtAmpChanngelChangeToChannel(2);
           Serial.print("Switch:  "); Serial.println(currentSwitch);                      
         break;
         case 9:
@@ -615,40 +592,39 @@ void loop() {
 //  
 
 ////////// UTILITY FUNCTIONS ////////////////////////////////////////////
-void requestExtAmpChanngelChangeToChannel(int channelToChangeTo) {
-    for (int iLed = 0; iLed<3; iLed++){
-      digitalWrite(leds[externalAmpChannelSwitches[iLed]-1],LOW);
-    }  
+void requestExtAmpChanngelChangeToChannel(int channelToChangeTo) { 
+  for (int iLed = 0; iLed<=nExternalAmpLeds-1; iLed++){
+    digitalWrite(externalAmpLeds[iLed],LOW);
+  }  
   switch( channelToChangeTo ) {  
+    case 0:  
+      digitalWrite(externalAmpChannelRelayPins[1],HIGH);
+      digitalWrite(externalAmpChannelRelayPins[0],LOW);
+      digitalWrite(externalAmpLeds[channelToChangeTo],HIGH);
+    break;
     case 1:  
-      digitalWrite(externalAmpChannelPins[1],HIGH);
-      digitalWrite(externalAmpChannelPins[0],LOW);
-      digitalWrite(leds[externalAmpChannelSwitches[0]-1],HIGH);
+      digitalWrite(externalAmpChannelRelayPins[1],HIGH);
+      digitalWrite(externalAmpChannelRelayPins[0],HIGH);  
+      digitalWrite(externalAmpLeds[channelToChangeTo],HIGH);
     break;
     case 2:  
-      digitalWrite(externalAmpChannelPins[1],HIGH);
-      digitalWrite(externalAmpChannelPins[0],HIGH);  
-      digitalWrite(leds[externalAmpChannelSwitches[1]-1],HIGH);
-    break;
-    case 3:  
-      digitalWrite(externalAmpChannelPins[0],HIGH);    
-      digitalWrite(externalAmpChannelPins[1],LOW);
-      digitalWrite(leds[externalAmpChannelSwitches[2]-1],HIGH);  
+      digitalWrite(externalAmpChannelRelayPins[0],HIGH);    
+      digitalWrite(externalAmpChannelRelayPins[1],LOW);
+      digitalWrite(externalAmpLeds[channelToChangeTo],HIGH);
     break;
   }
-  externalAmpCurrentChanngel = channelToChangeTo;
-  Serial.print("CH CHANGE to CH");
-  Serial.println(externalAmpCurrentChanngel);
+  externalAmpCurrentChannel = channelToChangeTo;
+  updLCD = true;
 }
 
 void requestExtAmpSoloModeStateChange(int switchNumber){
   externalSoloModeState = !externalSoloModeState;
   if (externalSoloModeState == true){
-    digitalWrite(externalSoloModePin,LOW);
+    digitalWrite(externalSoloModeRelayPin,LOW);
     digitalWrite(leds[switchNumber],HIGH);
   }
   else {
-    digitalWrite(externalSoloModePin,HIGH);
+    digitalWrite(externalSoloModeRelayPin,HIGH);
     digitalWrite(leds[switchNumber],LOW);
   }
 }
@@ -656,63 +632,62 @@ void requestExtAmpSoloModeStateChange(int switchNumber){
 void requestExtAmpFxLoopStateChange(){
   externalFxLoopState = !externalFxLoopState;
   if (externalFxLoopState == true){
-    digitalWrite(externalFxLoopPin,LOW);
-    digitalWrite(leds[externalFxLoopSwitch],HIGH);
+    digitalWrite(externalFxLoopRelayPin,LOW);
+    digitalWrite(leds[externalFxLoopLed],HIGH);
   }
   else {
-    digitalWrite(externalFxLoopPin,HIGH);
-    digitalWrite(leds[externalFxLoopSwitch],LOW);
+    digitalWrite(externalFxLoopRelayPin,HIGH);
+    digitalWrite(leds[externalFxLoopLed],LOW);
   }
 }
 
 void requestPresetChangeToPreset(int presetToChangeTo, int ledToFlash){
-  if (currentPresetNumber>127){
-    currentPresetNumber = 0;
+  if (presetToChangeTo>127){
+    presetToChangeTo = 0;
   }
-  else if (currentPresetNumber<0){
-    currentPresetNumber = 127;
+  else if (presetToChangeTo<0){
+    presetToChangeTo = 127;
   }  
   MIDI.sendProgramChange(presetToChangeTo,MIDICHAN);  
   lcd.clear();
   digitalWrite(ledToFlash,HIGH);
   delay(500);
   digitalWrite(ledToFlash,LOW);
-  requestSceneChangeToScene(0);
+  requestSceneChangeToScene(0,0);
 }
 
-void requestSceneChangeToScene(int switchNumber) {
-    Serial.println("Scene");
-  Serial.println(currentScene);
-	currentScene = scenesToChangeTo[switchNumber] - 1;
-	MIDI.sendControlChange(SceneSelect_CC, currentScene, MIDICHAN); 
-  Serial.println("Scene");
-  Serial.println(currentScene);
-  switch (currentScene) {
+void requestSceneChangeToScene(int sceenToChangeTo, int switchPressed) {
+//    currentScene = sceenToChangeTo;
+    MIDI.sendControlChange(SceneSelect_CC, sceenToChangeTo, MIDICHAN); 
+    switch (sceenToChangeTo) {
     case 0:
-      requestExtAmpChanngelChangeToChannel(1);
+      requestExtAmpChanngelChangeToChannel(0);
     break;
     case 1:
-      Serial.println("Chagne to ch 1");
-      requestExtAmpChanngelChangeToChannel(1);
+      requestExtAmpChanngelChangeToChannel(0);
     break;      
     case 2:
-      requestExtAmpChanngelChangeToChannel(2);
+      requestExtAmpChanngelChangeToChannel(1);
     break;      
     case 3:
-      requestExtAmpChanngelChangeToChannel(2);
+      requestExtAmpChanngelChangeToChannel(1);
     break;      
     case 4:
-      requestExtAmpChanngelChangeToChannel(3);                        
+      requestExtAmpChanngelChangeToChannel(1);                        
     break;
   }
-  
-	
 	for( int i = 0; i <= sceneLedCount; i++ ) {
-		digitalWrite(sceneLeds[i],LOW);
+    if (switchPressed == i) {
+      digitalWrite(sceneLeds[i],HIGH);
+    }
+    else {
+		  digitalWrite(sceneLeds[i],LOW);
+    }
 	}
-	digitalWrite(sceneLeds[switchNumber],HIGH);
 	lcd.setCursor(7,1);   lcd.print("Scene Change");
 }
+
+
 
 void flashPin( int ledPin, int flashDelay ) {
   digitalWrite( ledPin, HIGH );
