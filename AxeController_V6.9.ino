@@ -1,4 +1,6 @@
 // Axe-FX midi.controller 23-Oct-2016 V6.9
+// Updated 29 Dec 2017, Jeff Anderson
+
 #include <MIDI.h>
 #include <LiquidCrystal.h>
 
