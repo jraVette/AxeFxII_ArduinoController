@@ -208,7 +208,6 @@ bool externalSoloModeState = false;
 int externalSoloModeLed = LED9;
 
 int externalFxLoopRelayPin = 12;
-int externalFxLoopLed = 10;
 bool externalFxLoopState = false;
 
 int currentSwitch = 0;
@@ -309,7 +308,7 @@ void setup() {
   }
   updLCD = true;
   requestSceneChangeToScene(0,0);
-  requestExtAmpFxLoopStateChange();
+  requestExtAmpFxLoopStateChange(9);
   
   Serial.println("Finished setup");
 
@@ -378,6 +377,10 @@ void loop() {
           requestSceneChangeToScene(4,currentSwitch);
           Serial.print("Switch:  "); Serial.println(currentSwitch);                      
         break;
+        case 5:
+          requestExtAmpSoloModeStateChange(currentSwitch);
+          Serial.print("Switch:  "); Serial.println(currentSwitch);                      
+        break;         
             
 
         case 6:
@@ -392,12 +395,9 @@ void loop() {
           requestExtAmpChanngelChangeToChannel(2);
           Serial.print("Switch:  "); Serial.println(currentSwitch);                      
         break;
+   
         case 9:
-          requestExtAmpSoloModeStateChange(currentSwitch);
-          Serial.print("Switch:  "); Serial.println(currentSwitch);                      
-        break;    
-        case 10:
-          requestExtAmpFxLoopStateChange();
+          requestExtAmpFxLoopStateChange(currentSwitch);
           Serial.print("Switch:  "); Serial.println(currentSwitch);                      
         break;
  
@@ -629,15 +629,15 @@ void requestExtAmpSoloModeStateChange(int switchNumber){
   }
 }
 
-void requestExtAmpFxLoopStateChange(){
+void requestExtAmpFxLoopStateChange(int currentSwitch){
   externalFxLoopState = !externalFxLoopState;
   if (externalFxLoopState == true){
     digitalWrite(externalFxLoopRelayPin,LOW);
-    digitalWrite(leds[externalFxLoopLed],HIGH);
+    digitalWrite(leds[currentSwitch],HIGH);
   }
   else {
     digitalWrite(externalFxLoopRelayPin,HIGH);
-    digitalWrite(leds[externalFxLoopLed],LOW);
+    digitalWrite(leds[currentSwitch],LOW);
   }
 }
 
@@ -648,6 +648,7 @@ void requestPresetChangeToPreset(int presetToChangeTo, int ledToFlash){
   else if (presetToChangeTo<0){
     presetToChangeTo = 127;
   }  
+  MIDI.sendControlChange(0,0,MIDICHAN); 
   MIDI.sendProgramChange(presetToChangeTo,MIDICHAN);  
   lcd.clear();
   digitalWrite(ledToFlash,HIGH);
@@ -673,7 +674,7 @@ void requestSceneChangeToScene(int sceenToChangeTo, int switchPressed) {
       requestExtAmpChanngelChangeToChannel(1);
     break;      
     case 4:
-      requestExtAmpChanngelChangeToChannel(1);                        
+      requestExtAmpChanngelChangeToChannel(2);                        
     break;
   }
 	for( int i = 0; i <= sceneLedCount; i++ ) {
