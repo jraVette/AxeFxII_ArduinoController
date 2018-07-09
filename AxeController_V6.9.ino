@@ -644,14 +644,33 @@ void requestExtAmpFxLoopStateChange(int currentSwitch){
 }
 
 void requestPresetChangeToPreset(int presetToChangeTo, int ledToFlash){
-  if (presetToChangeTo>127){
-    presetToChangeTo = 0;
+//  if (presetToChangeTo>127){
+//    presetToChangeTo = 0;
+//  }
+//  else if (presetToChangeTo<0){
+//    presetToChangeTo = 127;
+//  }  
+//  MIDI.sendControlChange(0,0,MIDICHAN); 
+//  MIDI.sendProgramChange(presetToChangeTo,MIDICHAN);  
+int currentPreset = presetToChangeTo;
+  if (currentPreset < 128) {
+    MIDI.sendControlChange(0, 0, MIDICHAN);
+    MIDI.sendProgramChange(currentPreset, MIDICHAN);
   }
-  else if (presetToChangeTo<0){
-    presetToChangeTo = 127;
-  }  
-  MIDI.sendControlChange(0,0,MIDICHAN); 
-  MIDI.sendProgramChange(presetToChangeTo,MIDICHAN);  
+  else if (currentPreset < 256) {
+    MIDI.sendControlChange(0, 1, MIDICHAN);
+    MIDI.sendProgramChange(currentPreset - 128, MIDICHAN);
+  }
+  else if (currentPreset < 384) {
+    MIDI.sendControlChange(0, 2, MIDICHAN);
+    MIDI.sendProgramChange(currentPreset - 256, MIDICHAN);
+  }
+  else if (currentPreset >=  384) {
+    currentPreset = 0;
+    MIDI.sendControlChange(0, 0, MIDICHAN);
+    MIDI.sendProgramChange(currentPreset, MIDICHAN);
+  }
+
   lcd.clear();
   digitalWrite(ledToFlash,HIGH);
   delay(500);
