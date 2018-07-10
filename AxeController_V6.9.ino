@@ -644,31 +644,41 @@ void requestExtAmpFxLoopStateChange(int currentSwitch){
 }
 
 void requestPresetChangeToPreset(int presetToChangeTo, int ledToFlash){
-//  if (presetToChangeTo>127){
-//    presetToChangeTo = 0;
-//  }
-//  else if (presetToChangeTo<0){
-//    presetToChangeTo = 127;
-//  }  
-//  MIDI.sendControlChange(0,0,MIDICHAN); 
-//  MIDI.sendProgramChange(presetToChangeTo,MIDICHAN);  
-int currentPreset = presetToChangeTo;
-  if (currentPreset < 128) {
-    MIDI.sendControlChange(0, 0, MIDICHAN);
-    MIDI.sendProgramChange(currentPreset, MIDICHAN);
+  Serial.print("REQUEST PRESET: ");
+    Serial.println(presetToChangeTo);
+  if (presetToChangeTo < 0) {
+    MIDI.sendControlChange(0, 5, MIDICHAN);
+    MIDI.sendProgramChange(127, MIDICHAN);    
   }
-  else if (currentPreset < 256) {
+  else if (presetToChangeTo < 128) {
+    MIDI.sendControlChange(0, 0, MIDICHAN);
+    MIDI.sendProgramChange(presetToChangeTo, MIDICHAN);
+  }
+  else if (presetToChangeTo < 256) {
     MIDI.sendControlChange(0, 1, MIDICHAN);
-    MIDI.sendProgramChange(currentPreset - 128, MIDICHAN);
+    MIDI.sendProgramChange(presetToChangeTo - 128, MIDICHAN);
   }
-  else if (currentPreset < 384) {
+  else if (presetToChangeTo < 384) {
     MIDI.sendControlChange(0, 2, MIDICHAN);
-    MIDI.sendProgramChange(currentPreset - 256, MIDICHAN);
+    MIDI.sendProgramChange(presetToChangeTo - 256, MIDICHAN);
   }
-  else if (currentPreset >=  384) {
-    currentPreset = 0;
+  else if (presetToChangeTo <  512) {
+    MIDI.sendControlChange(0, 3, MIDICHAN);
+    MIDI.sendProgramChange(presetToChangeTo - 384, MIDICHAN);
+  }
+  else if (presetToChangeTo <  640) {
+    MIDI.sendControlChange(0, 4, MIDICHAN);
+    MIDI.sendProgramChange(presetToChangeTo - 512, MIDICHAN);
+  }
+  else if (presetToChangeTo < 767) {
+    Serial.print("REQUEST PRESET: ");
+    Serial.println(presetToChangeTo);
+    MIDI.sendControlChange(0, 5, MIDICHAN);
+    MIDI.sendProgramChange(presetToChangeTo - 640, MIDICHAN);    
+  }
+  else {
     MIDI.sendControlChange(0, 0, MIDICHAN);
-    MIDI.sendProgramChange(currentPreset, MIDICHAN);
+    MIDI.sendProgramChange(0, MIDICHAN);  
   }
 
   lcd.clear();
