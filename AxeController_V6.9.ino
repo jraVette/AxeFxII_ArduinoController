@@ -18,7 +18,7 @@
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI); 
 
 //Debugging flags
-bool printAllMidiMessages = false;
+bool printAllMidiMessages = true;
 
 #define LED0    23
 #define SWITCH0 25 
@@ -218,7 +218,13 @@ int pedalActiveFlash = 50; // Delay for flash when pedal is pressed
 int bank = 0;
 int PresetNumb = 0; //Initial preset number for preset selection
 int currentPresetNumber = 0; //Variable for storing current preset
+
 bool tunerStatus = false; // Tuner on/off
+int tunerSwitch = 11; // What switch the tuner is assigned to 
+unsigned long lastTunerUpdate = 0;
+bool updTunerLCD = false;
+
+int currentTempo = 0;
 
 const int sceneLedCount 		= 5;
 int sceneLeds[sceneLedCount] 		= {LED0, LED1, LED2, LED3, LED4};
@@ -254,6 +260,10 @@ byte RQSTCC[6]    = { 0x00, 0x01, 0x74, 0x06, 0x0E, 0x0D };
 byte RQSTSCENE[6] = { 0x00, 0x01, 0x74, 0x06, 0x29, 0x2A };
 
 byte GET_FRIMWARE_VERSION[6] = { 0x00, 0x01, 0x74, 0x06, 0x08, 0x0B };
+
+
+// Favorite presets
+int favoritePresets[3] = {0,1,463};
 
 void setup() {
   //Set MIDI baud rate:
@@ -291,11 +301,9 @@ void setup() {
 
 // Setup Switches and activation LEDs
   for( currentSwitch = 0; currentSwitch < switchCount; currentSwitch++ ) {
-//    pinMode( switches[currentSwitch], INPUT_PULLUP);          // Set pin for switch
-//    digitalWrite( switches[currentSwitch], HIGH );      // Turn on internal pullup
     pinMode(switches[currentSwitch], INPUT);
     pinMode( leds[currentSwitch], OUTPUT );             // Set pin for LED
-  flashPin( leds[currentSwitch], 100 ); // Flash LED
+    flashPin( leds[currentSwitch], 100 ); // Flash LED
   }
 
 
@@ -332,36 +340,64 @@ void loop() {
       updLCD = true;
   }
 
-  // update LCD display
-  if (updLCD == true) {
-      Serial.println("LCD update");
+  // Are we in tuner mode?
+  if (tunerStatus == true){
+    digitalWrite(leds[tunerSwitch],HIGH);
+    unsigned long ellapsedTime = millis() - lastTunerUpdate ;
+    Serial.print("Time sincle last tuner sysex: ");
+    Serial.println(ellapsedTime);
+    // If it's been a while, turn the tuner off (after ~100ms)
+    if (ellapsedTime > 100){
+      tunerStatus = false;
+      updLCD = true;
+      digitalWrite(tunerSwitch,HIGH);
+      Serial.println("EXITING TUNER");
+      digitalWrite(leds[tunerSwitch],LOW);
+    }
+
+    if (updTunerLCD == true){
       lcd.clear();
       lcd.setCursor(0,0);
-      lcd.print(pname);
-      lcd.setCursor(0,1);
-      lcd.print("Ch: "); lcd.print(externalAmpCurrentChannel+1);
+      lcd.print("TUNER ON");
+      updTunerLCD = false;
+    }
+
+    //Make sure tuner light is on
+    digitalWrite(tunerSwitch,HIGH);
+  }
+
+
+  // update LCD display
+  if (updLCD == true) {
+    Serial.println("LCD update");
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print(pname);
+    lcd.setCursor(0,1);
+    lcd.print("Ch: "); lcd.print(externalAmpCurrentChannel+1);
 //      lcd.print("Prog:");
 //      lcd.print(preset);
 //      lcd.setCursor(8,1);
 //      lcd.print("Scn:");
 //      lcd.print(currentScene);
-      matrix.writeDigitNum(0, (currentPresetNumber / 100) % 10, false);
-      matrix.writeDigitNum(1, (currentPresetNumber / 10) % 10, false);
-      matrix.drawColon(false);
-      matrix.writeDigitNum(3, (currentPresetNumber / 1) % 10, true);
-      matrix.writeDigitNum(4, currentScene, false);
-      matrix.writeDisplay();
-      updLCD = false;
+    matrix.writeDigitNum(0, (currentPresetNumber / 100) % 10, false);
+    matrix.writeDigitNum(1, (currentPresetNumber / 10) % 10, false);
+    matrix.drawColon(false);
+    matrix.writeDigitNum(3, (currentPresetNumber / 1) % 10, true);
+    matrix.writeDigitNum(4, currentScene, false);
+    matrix.writeDisplay();
+    updLCD = false;
   }
   
   for( currentSwitch = 0; currentSwitch < switchCount; currentSwitch++ ) {
     if((digitalRead(switches[currentSwitch]) != switchState[currentSwitch] )&&(switchState[currentSwitch] == HIGH)){
       Serial.print("SWITCH PRESSED: ");
       Serial.println(currentSwitch+1);
+      
       switch( currentSwitch ) {
         case 0: 
           requestSceneChangeToScene(0,currentSwitch);
-  			  Serial.print("Switch:  "); Serial.println(currentSwitch);                      
+          Serial.print("Switch:  "); Serial.println(currentSwitch);                      
         break;
     		case 1: 
           requestSceneChangeToScene(1,currentSwitch);
@@ -402,6 +438,10 @@ void loop() {
           requestExtAmpFxLoopStateChange(currentSwitch);
           Serial.print("Switch:  "); Serial.println(currentSwitch);                      
         break;
+
+        case 10:
+          toggleThroughFavoritesList(currentSwitch);
+        break;
  
         case 12:          // Switch 13                            Preset down
           currentPresetNumber--;
@@ -413,6 +453,10 @@ void loop() {
           requestPresetChangeToPreset(currentPresetNumber, leds[currentSwitch]);
           Serial.print("Switch:  "); Serial.println(currentSwitch);    
         break; 
+        case 11:
+          toggleTuner(tunerSwitch);
+        break;
+        
         default:     
           toggleTuner(currentSwitch);
           Serial.print("Switch:  "); Serial.println(currentSwitch);                      
@@ -421,7 +465,8 @@ void loop() {
       
     }
     switchState[currentSwitch] = digitalRead( switches[currentSwitch] );
-  }  
+  }
+  
 }
        
         
@@ -594,7 +639,7 @@ void loop() {
 //  
 
 ////////// UTILITY FUNCTIONS ////////////////////////////////////////////
-void requestExtAmpChanngelChangeToChannel(int channelToChangeTo) { 
+void requestExtAmpChanngelChangeToChannel( int channelToChangeTo) { 
   for (int iLed = 0; iLed<=nExternalAmpLeds-1; iLed++){
     digitalWrite(externalAmpLeds[iLed],LOW);
   }  
@@ -733,16 +778,49 @@ void toggleTuner(int tunerSwitchNumber){
       MIDI.sendControlChange(Tuner_CC,127,MIDICHAN);
       tunerStatus = true;
       digitalWrite(leds[tunerSwitchNumber],HIGH);
-      lcd.clear();
-      lcd.write("Tuner ON");
     }
     else
     {
       tunerStatus = false;
       MIDI.sendControlChange(Tuner_CC,0,MIDICHAN);
       digitalWrite(leds[tunerSwitchNumber],LOW);
-      updLCD = true;
+      // updLCD = true;
     }   
+}
+
+void toggleThroughFavoritesList(int switchPressed) {
+  Serial.println("FAVORITES________________________<");
+  
+  int nFavorites = sizeof favoritePresets/sizeof favoritePresets[0];
+  int distToFavorite[sizeof favoritePresets]; 
+  
+  for (int i=0; i<nFavorites; i++){
+    distToFavorite[i] = currentPresetNumber - favoritePresets[i];
+    
+    // Case that we're already on a favorite, toggle to the next one
+    if (distToFavorite[i] == 0){
+      Serial.print("Already on favorite, nFavorites: ");
+      Serial.println(nFavorites);
+      if (i == nFavorites-1){
+        i == 0;
+      }
+      else {
+        Serial.println("i++");
+        i++;
+      }
+      Serial.print("i = ");
+      Serial.println(i);
+      Serial.println("REQUEST FAVORITE: ");
+      Serial.println(favoritePresets[i]);
+      requestPresetChangeToPreset(favoritePresets[i],switchPressed);
+      break;
+    }
+  }
+
+  // We're not on a favorite, so go to the closet one
+  int iClosestFavorite = getIndexOfMaximumValue(distToFavorite, nFavorites);
+  requestPresetChangeToPreset(favoritePresets[iClosestFavorite],switchPressed);
+ 
 }
 
 
@@ -781,62 +859,79 @@ void HandleSysEx(byte *SysExArray, unsigned int size) {
         Serial.print("With uint8_t scalar: "); PrintHex8(SysExArray,size); Serial.print("\n"); 
       }
         switch (SysExArray[5]) {
-            case 0x0F: { // preset name 
-              Serial.println("case 0x0F preset name - ");
-                const byte *sys = MIDI.getSysExArray();
-                sizear = MIDI.getSysExArrayLength();
-                parseName(sys,sizear);
-                updLCD = true;
-                break;
-            }
-            case 0x29: { // scene
-              Serial.println("case 0x29 scene - ");
-                currentScene = SysExArray[6] + 1;
-                updLCD = true;
+          case 0x0F: { // preset name 
+            Serial.println("case 0x0F preset name - ");
+              const byte *sys = MIDI.getSysExArray();
+              sizear = MIDI.getSysExArrayLength();
+              parseName(sys,sizear);
+              updLCD = true;
+              break;
+          }
+          case 0x29: { // scene
+            Serial.println("case 0x29 scene - ");
+              currentScene = SysExArray[6] + 1;
+              updLCD = true;
 
-                break;
-                
-            }
-            case 0x21: { // MIDI event ACK??
-              Serial.println("Case 0x21 MIDI event ACK?? - ");
-                ct = millis();
-                MIDI.sendSysEx(6,RQSTNUM);
-                MIDI.sendSysEx(6,RQSTNAME);
-                updLCD = true;
-                break;
-            }
-            
-            case 0x14: {  // preset num
-              Serial.println("case 0x14 preset num - ");
-                const byte *sys = MIDI.getSysExArray();
-                sizear = MIDI.getData1();
-
-
-                preset = parseNum(sys,sizear);
-                if (preset != currentPresetNumber){
-                    currentPresetNumber = preset;
-                    //Reqeuest change to scene 1
-                    MIDI.sendControlChange(SceneSelect_CC, 0, MIDICHAN); 
-
-                    //Get updated name
-                    MIDI.sendSysEx(6,RQSTNAME);
-                    delay(50);
-                }
-
-                
-
-                updLCD = true;
-                break;
+              break;
               
+          }
+          case 0x21: { // MIDI event ACK??
+            Serial.println("Case 0x21 MIDI event ACK?? - ");
+              ct = millis();
+              MIDI.sendSysEx(6,RQSTNUM);
+              MIDI.sendSysEx(6,RQSTNAME);
+              updLCD = true;
+              break;
+          }
+          
+          case 0x14: {  // preset num
+            Serial.println("case 0x14 preset num - ");
+              const byte *sys = MIDI.getSysExArray();
+              sizear = MIDI.getData1();
+
+
+              preset = parseNum(sys,sizear);
+              if (preset != currentPresetNumber){
+                  currentPresetNumber = preset;
+                  //Reqeuest change to scene 1
+                  MIDI.sendControlChange(SceneSelect_CC, 0, MIDICHAN); 
+
+                  //Get updated name
+                  MIDI.sendSysEx(6,RQSTNAME);
+                  delay(50);
+              }
+              updLCD = true;
+              break;
+          }
+
+         
+          case 0x0E: { // FX data
+            Serial.println("case 0x0E FX data - ");
+              const byte *sys = MIDI.getSysExArray();
+              sizear = MIDI.getData1();
+              break;
             }
 
-           
-            case 0x0E: { // FX data
-              Serial.println("case 0x0E FX data - ");
-                const byte *sys = MIDI.getSysExArray();
-                sizear = MIDI.getData1();
-                break;
-            }
+          case 0x0D: { // tuner on
+            //Grab what time the last update was (will use to turn tuner off after)
+            lastTunerUpdate = millis();
+
+            tunerStatus = true;
+            updTunerLCD = true;
+            break;
+          }
+          case 0x10: { // TEMPO
+            Serial.print("TEMPO = ");
+          }
+
+
+
+        }
+
+
+                            
+            
+            
             
 //            case 0x10: { // tempo
 //                tt = millis();
@@ -844,9 +939,11 @@ void HandleSysEx(byte *SysExArray, unsigned int size) {
 //Serial.print("case 0x10 Tempo - ");Serial.println(pname);
 //                break;
 //            }
-        }
+               
+        
     }
 }
+
 
 
 void PrintHex8(uint8_t *data, uint8_t length) // prints 8-bit data in hex with leading zeroes
@@ -867,4 +964,17 @@ void PrintHex16(uint16_t *data, uint8_t length) // prints 16-bit data in hex wit
          Serial.print(tmp); Serial.print(" ");
        }
 }
+int getIndexOfMaximumValue(int* array, int size){
+ int maxIndex = 0;
+ int max = array[maxIndex];
+ for (int i=1; i<size; i++){
+   if (max<array[i]){
+     max = array[i];
+     maxIndex = i;
+   }
+ }
+ return maxIndex;
+}
+
+
 

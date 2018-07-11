@@ -11,5 +11,6 @@ Need to also install Adafruit LED Backpack Libaries and MIDI
 * https://github.com/adafruit/Adafruit_LED_Backpack
 * https://github.com/adafruit/Adafruit-GFX-Library
 * https://github.com/FortySevenEffects/arduino_midi_library/ (I installed 4.3.1)
+* https://playground.arduino.cc/uploads/Code/Array.zip
 
 Note: When compiling need to have the correct board "Arduino/Genuino Mega or Mega 2560"!!
