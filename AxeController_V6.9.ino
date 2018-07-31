@@ -768,13 +768,10 @@ void HandleSysEx(byte *SysExArray, unsigned int size) {
         int preset = parseNum(sys,sizear);
         if (preset != currentPresetNumber){
             currentPresetNumber = preset;
-            //Reqeuest change to scene 1
-            MIDI.sendControlChange(SceneSelect_CC, 0, MIDICHAN); 
-
-            //Get updated name
-            MIDI.sendSysEx(6,RQSTNAME);
-            delay(50);
         }
+        MIDI.sendSysEx(6,RQSTNAME);
+        delay(50);
+        
         updateLcd = true;
         break;
       }
