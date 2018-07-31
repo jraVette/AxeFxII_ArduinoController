@@ -162,27 +162,35 @@ const int switchPins[nSwitches] = {25, 29, 33, 37, 41, 24, 28, 32, 36, 40, 44, 4
 int ledState[nSwitches]         = {LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW};
 int switchState[nSwitches] = { LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW};
 int buttonSetupMode = 1;// 1 is 4CT, 2 is NORMAL
-int buttonFunction[nSwitches]= {1, 2, 3, 4, 5, 104, 14, 102, 103, 105, 13, 12, 10, 9}; // Used to define the function of each switch in the code for different operating modes
+int buttonFunction[nSwitches]= {1, 2, 3, 4, 5, 104, 14, 15, 17, 21, 13, 12, 10, 9}; // Used to define the function of each switch in the code for different operating modes
 // int setupButtonFunctions4CT[nSwitches] = {1, 2, 3, 4, 5, 104, 101, 102, 103, 105, 13, 12, 10, 9};
 // Possible 
-//  101 - extAmpSwitchingCh1
-//  102 - extAmpSwitchingCh2
-//  103 - extAmpSwitchingCh3
-//  104 - extAmpSwitchingSolo
-//  105 - extAmpSwitchingFxLoop
-//    1 - Scene 01
-//    2 - Scene 02
-//    3 - Scene 03
-//    4 - Scene 04
-//    5 - Scene 05
-//    6 - Scene 06
-//    7 - Scene 07
-//    8 - Scene 08
-//    9 - Preset Up
-//   10 - Preset Down
-//   11 - Tap Tempo // Little flakey...need to improve
-//   12 - Tuner
-//   13 - Favorites
+// *  101 - extAmpSwitchingCh1  
+// *  102 - extAmpSwitchingCh2
+// *  103 - extAmpSwitchingCh3
+// *  104 - extAmpSwitchingSolo
+// *  105 - extAmpSwitchingFxLoop
+// *    1 - Scene 01
+// *    2 - Scene 02
+// *    3 - Scene 03
+// *    4 - Scene 04
+// *    5 - Scene 05
+// *    6 - Scene 06
+// *    7 - Scene 07
+// *    8 - Scene 08
+// *    9 - Preset Up
+// *   10 - Preset Down
+// *   11 - Tap Tempo // little flakey and needs some work
+// *   12 - Tuner 
+// *   13 - Favorites
+// *   14 - LooperRecord 
+// *   15 - LooperPlay 
+// *   16 - LooperOnce // NOT CODED YET
+// *   17 - LooperDub // NOT CODED YET
+// *   18 - LooperRev // NOT CODED YET
+// *   19 - LooperBypass // NOT CODED YET
+// *   20 - LooperHalf // NOT CODED YET
+// *   21 - LooperUndo // NOT CODED YET
 
 //LCD & 7seg
 const int rs = 3, e = 2, d4 = 4, d5 = 5, d6 = 6, d7 = 7;
@@ -489,10 +497,62 @@ void loop() {
           MIDI.sendControlChange(LooperRecord_CC, 0, MIDICHAN);   
           //Put lights back to normal
           for (int i=0;i<nSwitches;i++){
+            if (buttonFunction[i] == 15) { // playback case
+              digitalWrite(ledPins[i], HIGH); ledState[i] = HIGH;
+            }
             digitalWrite(ledPins[i],ledState[i]); 
           } 
           delay(100);
         break;
+        case 15:
+          Serial.println("Toggle looper play");
+          if (ledState[iSwitch] == false) {
+            MIDI.sendControlChange(LooperPlay_CC,127,MIDICHAN);
+            digitalWrite(ledPins[iSwitch], HIGH); ledState[iSwitch] = HIGH;
+          }
+          else {
+            MIDI.sendControlChange(LooperPlay_CC,0,MIDICHAN);
+            digitalWrite(ledPins[iSwitch], LOW); ledState[iSwitch] = LOW;
+          }        
+          delay(100);          
+        break;
+        case 17:
+          //Turn the LEDS all off excpet this one
+          for (int i=0;i<nSwitches;i++){
+            if (i != iSwitch){
+              digitalWrite(ledPins[i],LOW); 
+            }
+            else {
+              digitalWrite(ledPins[i], HIGH);
+            }
+          }          
+          //Start the recording
+          Serial.println("Looper Record started");
+          MIDI.sendControlChange(LooperDub_CC, 127, MIDICHAN);   
+          delay(200);
+          //Wait for the button to become high again to stip it
+          while (digitalRead(switchPins[iSwitch]) == LOW){
+            delay(1);
+            Serial.println("WATING");
+          }
+          Serial.println("Looper Record finished");
+          MIDI.sendControlChange(LooperDub_CC, 0, MIDICHAN);   
+          //Put lights back to normal
+          for (int i=0;i<nSwitches;i++){
+            if (buttonFunction[i] == 15) { // playback case
+              digitalWrite(ledPins[i], HIGH); ledState[i] = HIGH;
+            }
+            digitalWrite(ledPins[i],ledState[i]); 
+          } 
+          delay(100);
+        break;
+        case 21:
+          digitalWrite(ledPins[iSwitch], HIGH);
+          MIDI.sendControlChange(LooperUndo_CC,127,MIDICHAN);
+          delay(100);
+          digitalWrite(ledPins[iSwitch], LOW);
+        break;
+
         case 13: // Favorites - I guess because of how I'm allocating nFavorites, this case need to be last
           digitalWrite(ledPins[iSwitch], HIGH);
           // We're not on a favorite, so go to the closet one

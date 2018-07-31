@@ -37,7 +37,7 @@ This program was written so that you could easily assign buttons to differnet fu
 *   13 - Favorites
 *   14 - LooperRecord
 *   15 - LooperPlay
-*   16 - LooperOnce
+*   16 - LooperOnce // NOT CODED YET
 *   17 - LooperDub
 *   18 - LooperRev
 *   19 - LooperBypass
