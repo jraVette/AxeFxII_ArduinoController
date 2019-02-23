@@ -1,4 +1,4 @@
-# Axe Fx II - Arduinon Controller
+# Axe Fx II - Arduino Controller
 This code is largely based on the excellent work from:
 https://forum.fractalaudio.com/threads/diy-axe-fx-foot-controller-for-50-open-project.119882/page-3
 
